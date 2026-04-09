@@ -107,9 +107,9 @@ case $BUILD_TYPE in
         # Initialize go module if not present
         if [ ! -f "go.mod" ]; then
             echo "Initializing Go module..."
-            go mod init uncver-$ARTIFACT 2>/dev/null || true
-            go mod tidy 2>/dev/null || true
+            go mod init uncver-$ARTIFACT
         fi
+        go mod tidy
         go build -o "$OUTPUT_NAME" ./cmd/server/
         cp "$OUTPUT_NAME" "$DIST_DIR/$ARTIFACT/"
         ;;
