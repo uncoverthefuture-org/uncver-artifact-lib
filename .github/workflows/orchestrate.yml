@@ -19,11 +19,19 @@ jobs:
       - name: Detect changed artifacts
         id: changes
         run: |
+          ALL_ARTIFACTS='["create","delete","discover","ngrok","redis-stream","share","start","stop","traefik","websocket-stream","artifacts","knowledge-graph","mecury-inception-listener","redis-stream-gui"]'
+          
           if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
-            CHANGED='["create","delete","discover","ngrok","redis-stream","share","start","stop","traefik","websocket-stream","artifacts","knowledge-graph","mecury-inception-listener","redis-stream-gui"]'
+            CHANGED="$ALL_ARTIFACTS"
+          elif [ "${{ github.event_name }}" == "pull_request" ] && [ "${{ github.event.pull_request.merged }}" == "true" ] && [[ "${{ github.event.pull_request.head.ref }}" == release-please--* ]]; then
+            CHANGED="$ALL_ARTIFACTS"
           else
             CHANGED_DIRS=$(git diff --name-only HEAD~1 HEAD | grep -E '^[a-z-]+/' | cut -d'/' -f1 | sort -u | jq -R . | jq -s . | tr -d '\n')
-            CHANGED="$CHANGED_DIRS"
+            if [ -z "$CHANGED_DIRS" ] || [ "$CHANGED_DIRS" == "[]" ]; then
+              CHANGED="$ALL_ARTIFACTS"
+            else
+              CHANGED="$CHANGED_DIRS"
+            fi
           fi
           
           echo "matrix={\"artifact\":$CHANGED}" >> $GITHUB_OUTPUT
