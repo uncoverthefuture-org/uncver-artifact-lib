@@ -84,11 +84,6 @@ case $BUILD_TYPE in
     
     cmake)
         echo "Building C++ project..."
-        # Install dependencies if running in CI
-        if [ "$CI" = "true" ]; then
-            echo "Installing C++ dependencies..."
-            apt-get update && apt-get install -y libcurl4-openssl-dev nlohmann-json3-dev libhiredis-dev
-        fi
         mkdir -p build
         cd build
         cmake ..
