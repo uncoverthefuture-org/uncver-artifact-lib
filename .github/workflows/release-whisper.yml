@@ -1,0 +1,65 @@
+name: Release uncver-whisper
+
+on:
+  pull_request:
+    types: [closed]
+    branches: [main]
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' && github.event.pull_request.merged == true && startsWith(github.event.pull_request.head.ref, 'release-whisper-v')
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Install whisper dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y sox ffmpeg
+
+      - name: Extract version from branch name
+        id: extract
+        run: |
+          BRANCH="${{ github.event.pull_request.head.ref }}"
+          VERSION="${BRANCH#release-whisper-}"
+          if [[ ! "${VERSION}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Could not extract valid version from branch: ${BRANCH}"
+            exit 1
+          fi
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "Version: ${VERSION}"
+
+      - name: Build uncver-whisper
+        run: |
+          echo "Building uncver-whisper..."
+          ./scripts/build.sh whisper
+
+      - name: Package uncver-whisper
+        run: |
+          echo "Packaging uncver-whisper..."
+          ./scripts/package.sh whisper
+
+      - name: Create release package
+        run: |
+          mkdir -p release
+          tar -czf "release/uncver-whisper-${{ steps.extract.outputs.version }}.tar.gz" -C "dist/whisper" .
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ steps.extract.outputs.version }}
+          name: Release uncver-whisper ${{ steps.extract.outputs.version }}
+          files: release/*.tar.gz
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

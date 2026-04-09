@@ -1,0 +1,35 @@
+{
+  "name": "uncver-mic",
+  "version": "1.0.0",
+  "description": "Captures audio from microphone and streams raw chunks to Redis for transcription",
+  "language": "go",
+  "build_type": "go",
+  "author": "uncver",
+  "repository": "https://github.com/uncoverthefuture-org/uncver-artifact-lib/tree/main/mic",
+  "entrypoint": "uncver-mic",
+  "environment": {
+    "REDIS_ADDR": "localhost:6379",
+    "REDIS_STREAM": "uncver:stream:audio:raw",
+    "CHUNK_DURATION_MS": "1000",
+    "SAMPLE_RATE": "16000"
+  },
+  "required_artifacts": [
+    {
+      "name": "uncver-redis-stream",
+      "required": true
+    }
+  ],
+  "features": [
+    "Captures audio from system microphone",
+    "Sends raw audio chunks to Redis stream",
+    "Configurable chunk duration (default 1 second)",
+    "16kHz sample rate for whisper compatibility"
+  ],
+  "message_format": {
+    "chunk_id": "unique-id",
+    "audio": "base64-encoded-pcm16",
+    "sample_rate": 16000,
+    "channels": 1,
+    "timestamp": "unix timestamp"
+  }
+}

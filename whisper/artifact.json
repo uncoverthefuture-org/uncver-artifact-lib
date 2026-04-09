@@ -1,0 +1,34 @@
+{
+  "name": "uncver-whisper",
+  "version": "1.0.0",
+  "description": "Transcribes audio chunks from Redis stream to text using whisper.cpp",
+  "language": "go",
+  "build_type": "go",
+  "author": "uncver",
+  "repository": "https://github.com/uncoverthefuture-org/uncver-artifact-lib/tree/main/whisper",
+  "entrypoint": "uncver-whisper",
+  "environment": {
+    "REDIS_ADDR": "localhost:6379",
+    "REDIS_STREAM_IN": "uncver:stream:audio:raw",
+    "REDIS_STREAM_OUT": "uncver:stream:audio:text",
+    "WHISPER_MODEL": "base",
+    "BATCH_SIZE": "10"
+  },
+  "required_artifacts": [
+    {
+      "name": "uncver-redis-stream",
+      "required": true
+    }
+  ],
+  "features": [
+    "Listens to Redis audio chunks",
+    "Batches chunks for efficient transcription",
+    "Uses whisper.cpp for local STT",
+    "Pushes transcribed text to Redis stream"
+  ],
+  "message_format": {
+    "chunk_id": "original chunk ID",
+    "text": "transcribed text",
+    "language": "en"
+  }
+}
