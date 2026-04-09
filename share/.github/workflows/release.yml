@@ -1,0 +1,60 @@
+name: Release uncver-share
+
+on:
+  pull_request:
+    types: [closed]
+    branches: [main]
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' && github.event.pull_request.merged == true && startsWith(github.event.pull_request.head.ref, 'release-share-v')
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Extract version from branch name
+        id: extract
+        run: |
+          BRANCH="${{ github.event.pull_request.head.ref }}"
+          VERSION="${BRANCH#release-share-v}"
+          if [[ ! "${VERSION}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Could not extract valid version from branch: ${BRANCH}"
+            exit 1
+          fi
+          echo "version=v${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "Version: v${VERSION}"
+
+      - name: Build uncver-share
+        run: |
+          echo "Building uncver-share..."
+          ./scripts/build.sh share
+
+      - name: Package uncver-share
+        run: |
+          echo "Packaging uncver-share..."
+          ./scripts/package.sh share
+
+      - name: Create release package
+        run: |
+          mkdir -p release
+          tar -czf "release/uncver-share-${{ steps.extract.outputs.version }}.tar.gz" -C "dist/share" .
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ steps.extract.outputs.version }}
+          name: Release uncver-share ${{ steps.extract.outputs.version }}
+          files: release/*.tar.gz
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

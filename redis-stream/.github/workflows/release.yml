@@ -1,0 +1,60 @@
+name: Release uncver-redis-stream
+
+on:
+  pull_request:
+    types: [closed]
+    branches: [main]
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' && github.event.pull_request.merged == true && startsWith(github.event.pull_request.head.ref, 'release-redis-stream-v')
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Extract version from branch name
+        id: extract
+        run: |
+          BRANCH="${{ github.event.pull_request.head.ref }}"
+          VERSION="${BRANCH#release-redis-stream-v}"
+          if [[ ! "${VERSION}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Could not extract valid version from branch: ${BRANCH}"
+            exit 1
+          fi
+          echo "version=v${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "Version: v${VERSION}"
+
+      - name: Build uncver-redis-stream
+        run: |
+          echo "Building uncver-redis-stream..."
+          ./scripts/build.sh redis-stream
+
+      - name: Package uncver-redis-stream
+        run: |
+          echo "Packaging uncver-redis-stream..."
+          ./scripts/package.sh redis-stream
+
+      - name: Create release package
+        run: |
+          mkdir -p release
+          tar -czf "release/uncver-redis-stream-${{ steps.extract.outputs.version }}.tar.gz" -C "dist/redis-stream" .
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ steps.extract.outputs.version }}
+          name: Release uncver-redis-stream ${{ steps.extract.outputs.version }}
+          files: release/*.tar.gz
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

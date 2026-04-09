@@ -1,0 +1,60 @@
+name: Release uncver-start
+
+on:
+  pull_request:
+    types: [closed]
+    branches: [main]
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' && github.event.pull_request.merged == true && startsWith(github.event.pull_request.head.ref, 'release-start-v')
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Extract version from branch name
+        id: extract
+        run: |
+          BRANCH="${{ github.event.pull_request.head.ref }}"
+          VERSION="${BRANCH#release-start-v}"
+          if [[ ! "${VERSION}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Could not extract valid version from branch: ${BRANCH}"
+            exit 1
+          fi
+          echo "version=v${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "Version: v${VERSION}"
+
+      - name: Build uncver-start
+        run: |
+          echo "Building uncver-start..."
+          ./scripts/build.sh start
+
+      - name: Package uncver-start
+        run: |
+          echo "Packaging uncver-start..."
+          ./scripts/package.sh start
+
+      - name: Create release package
+        run: |
+          mkdir -p release
+          tar -czf "release/uncver-start-${{ steps.extract.outputs.version }}.tar.gz" -C "dist/start" .
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ steps.extract.outputs.version }}
+          name: Release uncver-start ${{ steps.extract.outputs.version }}
+          files: release/*.tar.gz
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
