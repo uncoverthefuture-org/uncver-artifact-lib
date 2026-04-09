@@ -1,0 +1,22 @@
+{
+  "name": "uncver-redis-stream",
+  "version": "1.0.0",
+  "description": "Redis infrastructure for internal messaging between artifacts",
+  "language": "docker",
+  "build_type": "docker",
+  "author": "uncver",
+  "repository": "https://github.com/uncoverthefuture-org/uncver-artifact-lib/tree/main/redis-stream",
+  "container_image": "redis:7-alpine",
+  "ports": ["6379:6379"],
+  "environment": {},
+  "build": {
+    "dependencies": ["docker", "docker-compose"],
+    "steps": [
+      "docker-compose up -d"
+    ]
+  },
+  "package": {
+    "docker": true,
+    "docker_compose": true
+  }
+}

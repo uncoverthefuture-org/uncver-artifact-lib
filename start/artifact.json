@@ -6,7 +6,6 @@
   "build_type": "cmake",
   "author": "uncver",
   "repository": "https://github.com/uncoverthefuture-org/uncver-artifact-lib/tree/main/start",
-  "container_image": "ghcr.io/uncver/start:latest",
   "entrypoint": "uncver-start",
   "environment": {
     "REDIS_HOST": "localhost",
@@ -28,6 +27,6 @@
   },
   "package": {
     "files": ["uncver-start"],
-    "docker": true
+    "docker": false
   }
 }

@@ -6,7 +6,6 @@
   "build_type": "go",
   "author": "uncver",
   "repository": "https://github.com/uncoverthefuture-org/uncver-artifact-lib/tree/main/discover",
-  "container_image": "ghcr.io/uncver/discover:latest",
   "entrypoint": "discover",
   "environment": {
     "WEBSOCKET_URL": "ws://localhost:8080/ws",
@@ -34,6 +33,6 @@
   },
   "package": {
     "files": ["discover"],
-    "docker": true
+    "docker": false
   }
 }

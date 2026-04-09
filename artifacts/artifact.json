@@ -1,0 +1,25 @@
+{
+  "name": "uncver-cli",
+  "version": "1.0.0",
+  "description": "CLI tool for managing uncver artifacts - list, start, stop, create, delete, share",
+  "language": "rust",
+  "build_type": "cargo",
+  "author": "uncver",
+  "repository": "https://github.com/uncoverthefuture-org/uncver-artifact-lib/tree/main/artifacts",
+  "entrypoint": "uncver",
+  "environment": {},
+  "required_artifacts": [],
+  "build": {
+    "dependencies": ["cargo", "rust"],
+    "steps": [
+      "cargo build --release"
+    ]
+  },
+  "test": {
+    "command": "cargo test"
+  },
+  "package": {
+    "files": ["uncver"],
+    "docker": false
+  }
+}

@@ -1,12 +1,12 @@
 {
-  "name": "uncver-create",
+  "name": "uncver-stop",
   "version": "1.0.0",
-  "description": "Creates uncver artifacts via Redis streams - clones repositories and generates artifact.json",
+  "description": "Stops uncver artifacts via Redis streams - stops running containers",
   "language": "cpp",
   "build_type": "cmake",
   "author": "uncver",
-  "repository": "https://github.com/uncoverthefuture-org/uncver-artifact-lib/tree/main/create",
-  "entrypoint": "uncver-create",
+  "repository": "https://github.com/uncoverthefuture-org/uncver-artifact-lib/tree/main/stop",
+  "entrypoint": "uncver-stop",
   "environment": {
     "REDIS_HOST": "localhost",
     "REDIS_PORT": "6379"
@@ -25,11 +25,8 @@
       "cd build && make -j$(nproc)"
     ]
   },
-  "test": {
-    "command": "cd build && ctest --output-on-failure"
-  },
   "package": {
-    "files": ["uncver-create"],
+    "files": ["uncver-stop"],
     "docker": false
   }
 }

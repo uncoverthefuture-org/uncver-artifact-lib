@@ -6,7 +6,6 @@
   "build_type": "go",
   "author": "uncver",
   "repository": "https://github.com/uncoverthefuture-org/uncver-artifact-lib/tree/main/websocket-stream",
-  "container_image": "ghcr.io/uncver/websocket-stream:latest",
   "entrypoint": "websocket-stream",
   "ports": ["8080:8080"],
   "environment": {
@@ -27,6 +26,6 @@
   },
   "package": {
     "files": ["websocket-stream"],
-    "docker": true
+    "docker": false
   }
 }

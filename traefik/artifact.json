@@ -1,0 +1,21 @@
+{
+  "name": "uncver-traefik",
+  "version": "1.0.0",
+  "description": "Traefik reverse proxy with DDoS protection and SSL termination",
+  "language": "docker",
+  "build_type": "docker",
+  "author": "uncver",
+  "repository": "https://github.com/uncoverthefuture-org/uncver-artifact-lib/tree/main/traefik",
+  "container_image": "traefik:v2.10",
+  "ports": ["80:80", "443:443", "8080:8080"],
+  "environment": {},
+  "build": {
+    "dependencies": ["docker"],
+    "steps": [
+      "docker build -t uncver-traefik ."
+    ]
+  },
+  "package": {
+    "docker": true
+  }
+}
