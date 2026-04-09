@@ -49,7 +49,7 @@ func main() {
 	log.Printf("[whisper] In: %s, Out: %s, Batch: %s", redisStreamIn, redisStreamOut, batchSize)
 
 	ctx := context.Background()
-	rdb := redis.NewClient(&redis.Options{Addr: redisAddr})
+	rdb := redis.NewClient(&redis.Options{Addr: redisAddrIn})
 	defer rdb.Close()
 
 	if err := rdb.Ping(ctx).Err(); err != nil {
