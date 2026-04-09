@@ -1,0 +1,26 @@
+{
+  "name": "uncver-knowledge-graph",
+  "version": "1.0.0",
+  "description": "Knowledge graph for uncver artifact ecosystem",
+  "storage": {
+    "path": "./data",
+    "format": "json"
+  },
+  "streams": {
+    "commands": "uncver:stream:commands",
+    "stats": "uncver:stream:stats",
+    "responses": "uncver:stream:responses"
+  },
+  "artifacts": [],
+  "schema": {
+    "node_types": ["artifact", "command", "status", "capability"],
+    "predicates": [
+      "HAS_COMMAND",
+      "HAS_STATUS",
+      "DEPENDS_ON",
+      "PROVIDES",
+      "RESPONDS_TO",
+      "REGISTERS_WITH"
+    ]
+  }
+}

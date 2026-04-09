@@ -82,6 +82,27 @@
       "description": "ngrok with fingerprint-based domain generation",
       "language": "docker",
       "version": "1.0.0"
+    },
+    {
+      "name": "uncver-knowledge-graph",
+      "path": "knowledge-graph",
+      "description": "Knowledge graph manager for artifact metadata and commands",
+      "language": "go",
+      "version": "1.0.0"
+    },
+    {
+      "name": "uncver-mecury-inception-listener",
+      "path": "mecury-inception-listener",
+      "description": "AI-powered Redis stream listener using Mercury Inception",
+      "language": "go",
+      "version": "1.0.0"
+    },
+    {
+      "name": "uncver-redis-stream-gui",
+      "path": "redis-stream-gui",
+      "description": "Electron GUI for monitoring Redis streams",
+      "language": "nodejs",
+      "version": "1.0.0"
     }
   ],
   "required_artifacts": [

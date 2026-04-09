@@ -5,23 +5,57 @@
   "author": "uncoverthefuture",
   "repository": "https://github.com/uncver/uncver-artifact-lib",
   "source_repository": "https://github.com/uncver/uncver-artifact-lib/tree/main/mecury-inception-listener",
-  "container_image": "ghcr.io/uncver/mecury-inception-listener:latest",
+  "language": "go",
+  "build_type": "go-binary",
+  "entrypoint": "./mecury-inception-listener",
   "required_artifacts": [
     {
-      "name": "uncver-redis-stream-artifact",
+      "name": "uncver-redis-stream",
       "min_version": "1.0.0",
       "required": true,
       "auto_start": true
     }
   ],
   "environment": {
-    "REDIS_ADDR": "redis:6379",
+    "REDIS_ADDR": "localhost:6379",
     "MERCURY_API_URL": "https://api.mercuryinception.ai/v1",
     "CONFIG_PORT": "8080"
   },
   "ports": {
     "server": 8080,
     "metrics": 9090
+  },
+  "prompts": [
+    {
+      "name": "mercury_api_key",
+      "description": "Mercury Inception API Key",
+      "type": "secret",
+      "required": true,
+      "message": "Enter your Mercury Inception API key (or set MERCURY_API_KEY environment variable):"
+    },
+    {
+      "name": "mercury_model",
+      "description": "Mercury Inception Model",
+      "type": "select",
+      "required": true,
+      "options": [
+        "mercury-inception-v1",
+        "mercury-inception-v2",
+        "mercury-inception-fast"
+      ],
+      "default": "mercury-inception-v1",
+      "message": "Select the Mercury Inception model to use:"
+    }
+  ],
+  "build": {
+    "dependencies": ["go"],
+    "steps": [
+      "go mod tidy",
+      "go build -o mecury-inception-listener cmd/server/main.go"
+    ]
+  },
+  "package": {
+    "docker": false
   },
   "features": [
     "Listens to Redis streams for incoming messages",
@@ -34,7 +68,7 @@
   "tech_stack": [
     "Go 1.21+",
     "Redis Streams (go-redis/v9)",
-    " Gorilla WebSocket",
-    "React/Vite GUI for configuration"
+    "Gorilla WebSocket",
+    "Built-in web GUI for configuration"
   ]
 }
