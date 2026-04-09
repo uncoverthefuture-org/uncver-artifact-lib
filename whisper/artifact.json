@@ -1,6 +1,7 @@
 {
   "name": "uncver-whisper",
   "version": "1.0.0",
+  "release_branch": true,
   "description": "Transcribes audio chunks from Redis stream to text using whisper.cpp",
   "language": "go",
   "build_type": "go",
