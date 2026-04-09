@@ -1,0 +1,125 @@
+version: '3.8'
+
+services:
+  # Required artifacts - auto-started
+  redis:
+    image: redis:7-alpine
+    container_name: uncver-redis
+    networks:
+      - uncver-network
+
+  # NGROK with fingerprint-based domain
+  ngrok:
+    build: ../uncver-ngrok-artifact
+    container_name: uncver-ngrok
+    environment:
+      - NGROK_AUTHTOKEN=${NGROK_TOKEN}
+      - DEVICE_TYPE=${DEVICE_TYPE:-pc}
+    volumes:
+      - ngrok-data:/tmp
+    networks:
+      - uncver-network
+    depends_on:
+      - websocket-stream
+    restart: unless-stopped
+
+  # WebSocket stream - broadcasts everything
+  websocket-stream:
+    build: ../uncver-websocket-stream-artifact
+    container_name: uncver-websocket-stream
+    environment:
+      - REDIS_ADDR=redis:6379
+      - PORT=8080
+    networks:
+      - uncver-network
+    depends_on:
+      - redis
+    restart: unless-stopped
+
+  # Discover artifact - listens to WebSocket
+  discover-artifact:
+    build: ../uncver-discover-artifact
+    container_name: uncver-discover
+    environment:
+      - WEBSOCKET_URL=ws://websocket-stream:8080/ws
+      - DB_PATH=/data/artifacts.db
+      - REDIS_ADDR=redis:6379
+    volumes:
+      - discover-data:/data
+    networks:
+      - uncver-network
+    depends_on:
+      - websocket-stream
+      - redis
+    restart: unless-stopped
+
+  # Share artifact - both sends and receives
+  share-artifact:
+    build: ../uncver-share-artifact
+    container_name: uncver-share
+    environment:
+      - WEBSOCKET_URL=ws://websocket-stream:8080/ws
+      - REDIS_ADDR=redis:6379
+    networks:
+      - uncver-network
+    depends_on:
+      - websocket-stream
+      - redis
+    restart: unless-stopped
+
+  # Other artifacts...
+  create-artifact:
+    build: ../uncver-create-artifact
+    container_name: uncver-create
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    networks:
+      - uncver-network
+    depends_on:
+      - redis
+    restart: unless-stopped
+
+  start-artifact:
+    build: ../uncver-start-artifact
+    container_name: uncver-start
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    networks:
+      - uncver-network
+    depends_on:
+      - redis
+    restart: unless-stopped
+
+  stop-artifact:
+    build: ../uncver-stop-artifact
+    container_name: uncver-stop
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    networks:
+      - uncver-network
+    depends_on:
+      - redis
+    restart: unless-stopped
+
+  delete-artifact:
+    build: ../uncver-delete-artifact
+    container_name: uncver-delete
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    networks:
+      - uncver-network
+    depends_on:
+      - redis
+    restart: unless-stopped
+
+networks:
+  uncver-network:
+    driver: bridge
+
+volumes:
+  ngrok-data:
+  discover-data:

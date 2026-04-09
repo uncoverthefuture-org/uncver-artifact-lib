@@ -1,0 +1,29 @@
+.env
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+uncver-discover-artifact
+/dist
+/tmp
+/vendor
+
+# Go
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db

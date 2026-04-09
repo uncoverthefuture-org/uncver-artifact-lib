@@ -1,0 +1,49 @@
+http:
+  middlewares:
+    # Rate limiting - 100 req/min per IP
+    rate-limit:
+      rateLimit:
+        average: 100
+        burst: 50
+        period: 1m
+    
+    # DDoS protection
+    ddos-protection:
+      rateLimit:
+        average: 10
+        burst: 20
+        period: 1s
+    
+    # Max body size
+    limit-body:
+      buffering:
+        maxRequestBodyBytes: 10485760  # 10MB
+    
+    # Request timeout
+    timeout:
+      forwardAuth:
+        address: http://timeout
+      
+    # Security headers
+    security-headers:
+      headers:
+        customResponseHeaders:
+          X-Frame-Options: "DENY"
+          X-Content-Type-Options: "nosniff"
+          X-XSS-Protection: "1; mode=block"
+          Strict-Transport-Security: "max-age=31536000; includeSubDomains"
+        
+    # WebSocket support
+    websocket-headers:
+      headers:
+        customRequestHeaders:
+          Upgrade: "websocket"
+          Connection: "Upgrade"
+
+tcp:
+  middlewares:
+    # TCP rate limiting
+    tcp-rate-limit:
+      ipWhiteList:
+        sourceRange:
+          - "0.0.0.0/0"
