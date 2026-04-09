@@ -1,0 +1,44 @@
+{
+  "name": "redis-gui",
+  "version": "1.0.0",
+  "description": "Lightweight GUI for monitoring Redis streams - real-time message viewer",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder",
+    "test": "echo \"No tests specified\""
+  },
+  "keywords": ["redis", "gui", "electron", "monitoring", "streams"],
+  "author": "uncver",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^28.0.0",
+    "electron-builder": "^24.0.0"
+  },
+  "dependencies": {
+    "redis": "^4.6.0"
+  },
+  "build": {
+    "appId": "com.uncver.redis-gui",
+    "productName": "Redis Stream Monitor",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "renderer.js",
+      "index.html",
+      "styles.css",
+      "node_modules/**/*"
+    ],
+    "mac": {
+      "target": "dmg"
+    },
+    "linux": {
+      "target": "AppImage"
+    },
+    "win": {
+      "target": "nsis"
+    }
+  }
+}
