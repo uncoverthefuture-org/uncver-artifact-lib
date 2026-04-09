@@ -1,0 +1,38 @@
+{
+  "name": "uncver-piper",
+  "version": "1.0.0",
+  "description": "Text-to-speech aggregator that batches Redis stream messages and speaks them sequentially",
+  "language": "go",
+  "build_type": "go",
+  "author": "uncver",
+  "repository": "https://github.com/uncoverthefuture-org/uncver-artifact-lib/tree/main/piper",
+  "entrypoint": "uncver-piper",
+  "environment": {
+    "REDIS_ADDR": "localhost:6379",
+    "REDIS_STREAM": "uncver:stream:audio",
+    "WINDOW_SECONDS": "60",
+    "AUDIO_VOICE": "en"
+  },
+  "required_artifacts": [
+    {
+      "name": "uncver-redis-stream",
+      "required": true
+    }
+  ],
+  "ports": {
+    "api": 8090
+  },
+  "build": {
+    "dependencies": ["go", "espeak"]
+  },
+  "features": [
+    "Listens to Redis stream for text-to-speak messages",
+    "Batches messages by time window (default 60s)",
+    "Speaks chunks sequentially - no audio overlap",
+    "Uses espeak for cross-platform TTS"
+  ],
+  "message_format": {
+    "type": "say",
+    "text": "Hello world"
+  }
+}

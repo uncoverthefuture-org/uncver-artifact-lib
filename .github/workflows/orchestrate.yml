@@ -18,6 +18,7 @@ on:
       - 'knowledge-graph/**'
       - 'mecury-inception-listener/**'
       - 'redis-stream-gui/**'
+      - 'piper/**'
       - 'scripts/**'
       - '.github/workflows/orchestrate.yml'
   pull_request:
@@ -38,6 +39,7 @@ on:
       - 'knowledge-graph/**'
       - 'mecury-inception-listener/**'
       - 'redis-stream-gui/**'
+      - 'piper/**'
       - 'scripts/**'
       - '.github/workflows/orchestrate.yml'
   workflow_dispatch:
@@ -54,7 +56,7 @@ jobs:
       - name: Detect changed artifacts
         id: changes
         run: |
-          ALL_ARTIFACTS='["create","delete","discover","ngrok","redis-stream","share","start","stop","traefik","websocket-stream","artifacts","knowledge-graph","mecury-inception-listener","redis-stream-gui"]'
+          ALL_ARTIFACTS='["create","delete","discover","ngrok","redis-stream","share","start","stop","traefik","websocket-stream","artifacts","knowledge-graph","mecury-inception-listener","redis-stream-gui","piper"]'
           
           if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
             CHANGED="$ALL_ARTIFACTS"
@@ -152,5 +154,5 @@ jobs:
             -d '{
               "type": "fire_artifacts",
               "message": "All artifacts built and ready to deploy",
-              "artifacts": ["create","delete","discover","ngrok","redis-stream","share","start","stop","traefik","websocket-stream","artifacts","knowledge-graph","mecury-inception-listener","redis-stream-gui"]
+              "artifacts": ["create","delete","discover","ngrok","redis-stream","share","start","stop","traefik","websocket-stream","artifacts","knowledge-graph","mecury-inception-listener","redis-stream-gui","piper"]
             }' || echo "Fire command failed (PC may be offline)"
