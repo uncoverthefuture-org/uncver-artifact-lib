@@ -99,9 +99,15 @@ case $BUILD_TYPE in
         fi
         ;;
     
-    go)
+    go|go-binary)
         echo "Building Go project..."
-        OUTPUT_NAME=$(cat ../artifact.json 2>/dev/null | grep -o '"entrypoint": "[^"]*"' | cut -d'"' -f4 || echo "$ARTIFACT")
+        OUTPUT_NAME=$(cat artifact.json 2>/dev/null | grep -o '"entrypoint": "[^"]*"' | cut -d'"' -f4 || echo "$ARTIFACT")
+        # Initialize go module if not present
+        if [ ! -f "go.mod" ]; then
+            echo "Initializing Go module..."
+            go mod init uncver-$ARTIFACT 2>/dev/null || true
+            go mod tidy 2>/dev/null || true
+        fi
         go build -o "$OUTPUT_NAME" ./cmd/server/
         cp "$OUTPUT_NAME" "$DIST_DIR/$ARTIFACT/"
         ;;
@@ -117,6 +123,14 @@ case $BUILD_TYPE in
         else
             echo "Skipping Docker build (docker: false in artifact.json)"
         fi
+        ;;
+    
+    npm)
+        echo "Building Node.js project..."
+        npm install
+        npm run build
+        OUTPUT_NAME=$(cat artifact.json 2>/dev/null | grep -o '"entrypoint": "[^"]*"' | cut -d'"' -f4 || echo "$ARTIFACT")
+        cp "$OUTPUT_NAME" "$DIST_DIR/$ARTIFACT/" 2>/dev/null || true
         ;;
     
     *)

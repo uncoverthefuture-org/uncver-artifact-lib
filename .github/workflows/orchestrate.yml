@@ -3,9 +3,43 @@ name: Orchestrate Artifact Builds
 on:
   push:
     branches: [main, master]
+    paths:
+      - 'create/**'
+      - 'delete/**'
+      - 'discover/**'
+      - 'start/**'
+      - 'stop/**'
+      - 'share/**'
+      - 'artifacts/**'
+      - 'websocket-stream/**'
+      - 'redis-stream/**'
+      - 'traefik/**'
+      - 'ngrok/**'
+      - 'knowledge-graph/**'
+      - 'mecury-inception-listener/**'
+      - 'redis-stream-gui/**'
+      - 'scripts/**'
+      - '.github/workflows/orchestrate.yml'
   pull_request:
     types: [closed]
     branches: [main, master]
+    paths:
+      - 'create/**'
+      - 'delete/**'
+      - 'discover/**'
+      - 'start/**'
+      - 'stop/**'
+      - 'share/**'
+      - 'artifacts/**'
+      - 'websocket-stream/**'
+      - 'redis-stream/**'
+      - 'traefik/**'
+      - 'ngrok/**'
+      - 'knowledge-graph/**'
+      - 'mecury-inception-listener/**'
+      - 'redis-stream-gui/**'
+      - 'scripts/**'
+      - '.github/workflows/orchestrate.yml'
   workflow_dispatch:
 
 jobs:
@@ -13,6 +47,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.changes.outputs.matrix }}
+      should_skip: ${{ steps.changes.outputs.should_skip }}
     steps:
       - uses: actions/checkout@v4
       
@@ -23,14 +58,18 @@ jobs:
           
           if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
             CHANGED="$ALL_ARTIFACTS"
+            echo "should_skip=false" >> $GITHUB_OUTPUT
           elif [ "${{ github.event_name }}" == "pull_request" ] && [ "${{ github.event.pull_request.merged }}" == "true" ] && [[ "${{ github.event.pull_request.head.ref }}" == release-please--* ]]; then
             CHANGED="$ALL_ARTIFACTS"
+            echo "should_skip=false" >> $GITHUB_OUTPUT
           else
             CHANGED_DIRS=$(git diff --name-only HEAD~1 HEAD | grep -E '^[a-z-]+/' | cut -d'/' -f1 | sort -u | jq -R . | jq -s . | tr -d '\n')
             if [ -z "$CHANGED_DIRS" ] || [ "$CHANGED_DIRS" == "[]" ]; then
-              CHANGED="$ALL_ARTIFACTS"
+              echo "should_skip=true" >> $GITHUB_OUTPUT
+              echo "No artifact changes detected, skipping build"
             else
               CHANGED="$CHANGED_DIRS"
+              echo "should_skip=false" >> $GITHUB_OUTPUT
             fi
           fi
           
@@ -40,6 +79,7 @@ jobs:
   build-artifacts:
     needs: detect-changes
     runs-on: ubuntu-latest
+    if: needs.detect-changes.outputs.should_skip != 'true'
     strategy:
       matrix: ${{ fromJson(needs.detect-changes.outputs.matrix) }}
       fail-fast: false
