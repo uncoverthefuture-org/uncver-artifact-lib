@@ -1,0 +1,40 @@
+{
+  "name": "uncver-mecury-inception-listener",
+  "version": "1.0.0",
+  "description": "AI-powered Redis stream listener that asynchronously reviews and responds to messages using Mercury Inception",
+  "author": "uncoverthefuture",
+  "repository": "https://github.com/uncver/uncver-artifact-lib",
+  "source_repository": "https://github.com/uncver/uncver-artifact-lib/tree/main/mecury-inception-listener",
+  "container_image": "ghcr.io/uncver/mecury-inception-listener:latest",
+  "required_artifacts": [
+    {
+      "name": "uncver-redis-stream-artifact",
+      "min_version": "1.0.0",
+      "required": true,
+      "auto_start": true
+    }
+  ],
+  "environment": {
+    "REDIS_ADDR": "redis:6379",
+    "MERCURY_API_URL": "https://api.mercuryinception.ai/v1",
+    "CONFIG_PORT": "8080"
+  },
+  "ports": {
+    "server": 8080,
+    "metrics": 9090
+  },
+  "features": [
+    "Listens to Redis streams for incoming messages",
+    "Asynchronously processes messages through Mercury Inception AI",
+    "Does not listen for its own responses to prevent loops",
+    "GUI-based configuration for model selection and API key",
+    "Encrypted API key storage",
+    "Configurable response stream and processing"
+  ],
+  "tech_stack": [
+    "Go 1.21+",
+    "Redis Streams (go-redis/v9)",
+    " Gorilla WebSocket",
+    "React/Vite GUI for configuration"
+  ]
+}
