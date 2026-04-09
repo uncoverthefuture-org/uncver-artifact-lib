@@ -84,6 +84,11 @@ case $BUILD_TYPE in
     
     cmake)
         echo "Building C++ project..."
+        # Install dependencies if running in CI
+        if [ "$CI" = "true" ]; then
+            echo "Installing C++ dependencies..."
+            apt-get update && apt-get install -y libcurl4-openssl-dev nlohmann-json3-dev libhiredis-dev
+        fi
         mkdir -p build
         cd build
         cmake ..
@@ -91,6 +96,8 @@ case $BUILD_TYPE in
         # Find and copy the built binary
         if [ -f "uncver-$ARTIFACT" ]; then
             cp "uncver-$ARTIFACT" "$DIST_DIR/$ARTIFACT/"
+        elif [ -f "uncver-create-artifact" ]; then
+            cp "uncver-create-artifact" "$DIST_DIR/$ARTIFACT/uncver-create"
         elif ls *.exe 1> /dev/null 2>&1; then
             cp *.exe "$DIST_DIR/$ARTIFACT/" 2>/dev/null || true
         else
