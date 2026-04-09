@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.4](https://github.com/uncoverthefuture-org/uncver-artifact-lib/compare/v1.0.3...v1.0.4) (2026-04-09)
+
+
+### Bug Fixes
+
+* add dependency installation to all cmake-based release workflows ([2e6830b](https://github.com/uncoverthefuture-org/uncver-artifact-lib/commit/2e6830b88e4650331b437271bc8ee86593243280))
+
 ## [1.0.2](https://github.com/uncoverthefuture-org/uncver-artifact-lib/compare/v1.0.1...v1.0.2) (2026-04-09)
 
 
