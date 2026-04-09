@@ -13,6 +13,13 @@
     "QUERY_STREAM": "uncver:stream:queries",
     "API_PORT": "8085"
   },
+  "docker": {
+    "enabled": false,
+    "podman": true,
+    "image": "localhost/uncver-knowledge-graph:latest",
+    "build": "podman build -t localhost/uncver-knowledge-graph:latest .",
+    "run": "podman run -d --name knowledge-graph -p 8085:8085 --network=host -e REDIS_ADDR=localhost:6379 localhost/uncver-knowledge-graph:latest"
+  },
   "required_artifacts": [
     {
       "name": "uncver-redis-stream",
@@ -45,7 +52,44 @@
   "uncverkg_commands": {
     "write": "uncverkg write --subject '{}' --predicate '{}' --object '{}'",
     "read": "uncverkg read --query '{}'",
-    "bulk": "uncverkg bulk --file '{}'",
-    "chat": "uncverkg chat"
+    "bulk": "uncverkg bulk --file '{}'"
+  },
+  "examples": {
+    "write_fact": {
+      "description": "Store a fact that David works on Rust",
+      "commands": [
+        "uncverkg write --subject 'David' --predicate 'WORKS_ON' --object 'Rust'",
+        "redis-cli XADD uncver:stream:knowledge '*' type write_fact subject David predicate WORKS_ON object Rust",
+        "curl -X POST http://localhost:8085/fact -H 'Content-Type: application/json' -d '{\"subject\":\"David\",\"predicate\":\"WORKS_ON\",\"object\":\"Rust\"}'"
+      ]
+    },
+    "query_subject": {
+      "description": "Query all facts about David",
+      "commands": [
+        "uncverkg read --query 'David'",
+        "redis-cli XADD uncver:stream:queries '*' type query_subject subject David",
+        "curl http://localhost:8085/subject/David"
+      ]
+    },
+    "query_knowledge": {
+      "description": "Search knowledge graph for 'Rust'",
+      "commands": [
+        "uncverkg read --query 'Rust'",
+        "redis-cli XADD uncver:stream:queries '*' type query_knowledge query Rust",
+        "curl 'http://localhost:8085/query?q=Rust'"
+      ]
+    },
+    "get_context": {
+      "description": "Mercury-inception AI gets context before responding",
+      "commands": [
+        "redis-cli XADD uncver:stream:queries '*' type get_context_for_topic topic Rust"
+      ]
+    },
+    "learn_from_conversation": {
+      "description": "Store fact that user shared they like Rust",
+      "commands": [
+        "redis-cli XADD uncver:stream:knowledge '*' type learn_from_conversation topic User fact 'likes Rust' source user_shared"
+      ]
+    }
   }
 }
