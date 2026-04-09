@@ -1,6 +1,7 @@
 {
   "name": "uncver-mic",
   "version": "1.0.0",
+  "release_branch": true,
   "description": "Captures audio from microphone and streams raw chunks to Redis for transcription",
   "language": "go",
   "build_type": "go",
