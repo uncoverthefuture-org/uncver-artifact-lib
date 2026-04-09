@@ -1,11 +1,11 @@
 {
-  "name": "uncver-redis-gui",
+  "name": "uncver-redis-stream-gui",
   "version": "1.0.0",
   "description": "Lightweight Electron GUI for monitoring Redis streams in real-time",
   "language": "nodejs",
   "build_type": "npm",
   "author": "uncver",
-  "repository": "https://github.com/uncoverthefuture-org/uncver-artifact-lib/tree/main/redis-gui",
+  "repository": "https://github.com/uncoverthefuture-org/uncver-artifact-lib/tree/main/redis-stream-gui",
   "entrypoint": "npm start",
   "environment": {
     "REDIS_URL": "redis://localhost:6379"
