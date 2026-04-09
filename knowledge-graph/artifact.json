@@ -1,7 +1,7 @@
 {
   "name": "uncver-knowledge-graph",
   "version": "1.0.0",
-  "description": "Knowledge graph manager for artifact metadata, commands, and status. Integrates with uncver-kg for persistent storage.",
+  "description": "Knowledge graph interface for mercury-inception AI. Stores facts (Subject-Predicate-Object) using uncver-kg and provides query interface.",
   "language": "go",
   "build_type": "go-binary",
   "author": "uncver",
@@ -9,11 +9,8 @@
   "entrypoint": "./knowledge-graph",
   "environment": {
     "REDIS_ADDR": "localhost:6379",
-    "KG_DATA_PATH": "./data",
-    "UNCVERKG_PATH": "uncverkg",
-    "COMMAND_STREAM": "uncver:stream:commands",
-    "STATS_STREAM": "uncver:stream:stats",
-    "RESPONSE_STREAM": "uncver:stream:responses",
+    "KG_STREAM": "uncver:stream:knowledge",
+    "QUERY_STREAM": "uncver:stream:queries",
     "API_PORT": "8085"
   },
   "required_artifacts": [
@@ -24,8 +21,7 @@
     }
   ],
   "ports": {
-    "api": 8085,
-    "metrics": 9095
+    "api": 8085
   },
   "build": {
     "dependencies": ["go", "uncverkg"],
@@ -35,48 +31,21 @@
       "go build -o knowledge-graph cmd/server/main.go"
     ]
   },
-  "test": {
-    "command": "go test ./..."
-  },
   "package": {
     "files": ["knowledge-graph", "kg.json"],
     "docker": false
   },
   "features": [
-    "Listens to Redis for artifact stats/commands requests",
-    "Stores artifact metadata in uncver-kg knowledge graph",
-    "Responds to mercury-inception AI queries about artifacts",
-    "Maintains artifact command registry",
-    "Tracks artifact health and status",
-    "Supports bulk knowledge operations",
-    "Query interface for artifact discovery"
+    "Stores facts using uncver-kg CLI (Subject-Predicate-Object)",
+    "Answers knowledge queries from mercury-inception AI",
+    "Listens for knowledge write requests via Redis",
+    "Provides query interface for AI context retrieval",
+    "Maintains conversation context and learned facts"
   ],
-  "commands": {
-    "query_artifacts": {
-      "description": "Query all artifacts and their status",
-      "stream": "uncver:stream:stats",
-      "response_type": "artifact_list"
-    },
-    "query_commands": {
-      "description": "Query available commands for an artifact",
-      "stream": "uncver:stream:commands",
-      "response_type": "command_list"
-    },
-    "register_artifact": {
-      "description": "Register a new artifact in the knowledge graph",
-      "stream": "uncver:stream:commands",
-      "action": "register"
-    },
-    "update_status": {
-      "description": "Update artifact status",
-      "stream": "uncver:stream:stats",
-      "action": "update_status"
-    }
-  },
-  "redis_topics": [
-    "uncver:kg:query",
-    "uncver:kg:commands",
-    "uncver:kg:stats",
-    "uncver:kg:responses"
-  ]
+  "uncverkg_commands": {
+    "write": "uncverkg write --subject '{}' --predicate '{}' --object '{}'",
+    "read": "uncverkg read --query '{}'",
+    "bulk": "uncverkg bulk --file '{}'",
+    "chat": "uncverkg chat"
+  }
 }
