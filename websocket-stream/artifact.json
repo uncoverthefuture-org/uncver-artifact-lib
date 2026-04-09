@@ -1,0 +1,32 @@
+{
+  "name": "uncver-websocket-stream",
+  "version": "1.0.0",
+  "description": "WebSocket broadcaster for P2P artifact communication - broadcasts messages to all connected clients",
+  "language": "go",
+  "build_type": "go",
+  "author": "uncver",
+  "repository": "https://github.com/uncoverthefuture-org/uncver-artifact-lib/tree/main/websocket-stream",
+  "container_image": "ghcr.io/uncver/websocket-stream:latest",
+  "entrypoint": "websocket-stream",
+  "ports": ["8080:8080"],
+  "environment": {
+    "PORT": "8080",
+    "REDIS_ADDR": "localhost:6379"
+  },
+  "required_artifacts": [
+    {
+      "name": "uncver-redis-stream",
+      "required": true
+    }
+  ],
+  "build": {
+    "dependencies": ["go"],
+    "steps": [
+      "go build -o websocket-stream cmd/server/main.go"
+    ]
+  },
+  "package": {
+    "files": ["websocket-stream"],
+    "docker": true
+  }
+}

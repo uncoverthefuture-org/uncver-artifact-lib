@@ -1,0 +1,39 @@
+{
+  "name": "uncver-discover",
+  "version": "1.0.0",
+  "description": "Artifact registry with SQLite database - stores and queries artifact metadata",
+  "language": "go",
+  "build_type": "go",
+  "author": "uncver",
+  "repository": "https://github.com/uncoverthefuture-org/uncver-artifact-lib/tree/main/discover",
+  "container_image": "ghcr.io/uncver/discover:latest",
+  "entrypoint": "discover",
+  "environment": {
+    "WEBSOCKET_URL": "ws://localhost:8080/ws",
+    "DB_PATH": "/data/artifacts.db",
+    "REDIS_ADDR": "localhost:6379"
+  },
+  "required_artifacts": [
+    {
+      "name": "uncver-redis-stream",
+      "required": true
+    },
+    {
+      "name": "uncver-websocket-stream",
+      "required": true
+    }
+  ],
+  "build": {
+    "dependencies": ["go"],
+    "steps": [
+      "go build -o discover cmd/server/main.go"
+    ]
+  },
+  "test": {
+    "command": "go test ./..."
+  },
+  "package": {
+    "files": ["discover"],
+    "docker": true
+  }
+}

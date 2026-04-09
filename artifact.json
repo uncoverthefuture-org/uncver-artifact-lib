@@ -1,0 +1,124 @@
+{
+  "name": "uncver-artifact-lib",
+  "version": "1.0.0",
+  "description": "Meta-artifact that packages all uncver artifacts for P2P discovery and artifact management",
+  "type": "meta-package",
+  "author": "uncver",
+  "repository": "https://github.com/uncoverthefuture-org/uncver-artifact-lib",
+  "artifacts": [
+    {
+      "name": "uncver-cli",
+      "path": "artifacts",
+      "description": "CLI tool for managing artifacts",
+      "language": "rust",
+      "version": "1.0.0"
+    },
+    {
+      "name": "uncver-create",
+      "path": "create",
+      "description": "Create artifacts via Redis streams",
+      "language": "cpp",
+      "version": "1.0.0"
+    },
+    {
+      "name": "uncver-start",
+      "path": "start",
+      "description": "Start artifacts via Redis streams",
+      "language": "cpp",
+      "version": "1.0.0"
+    },
+    {
+      "name": "uncver-stop",
+      "path": "stop",
+      "description": "Stop artifacts via Redis streams",
+      "language": "cpp",
+      "version": "1.0.0"
+    },
+    {
+      "name": "uncver-delete",
+      "path": "delete",
+      "description": "Delete artifacts via Redis streams",
+      "language": "cpp",
+      "version": "1.0.0"
+    },
+    {
+      "name": "uncver-share",
+      "path": "share",
+      "description": "P2P artifact sharing via WebSocket",
+      "language": "cpp",
+      "version": "1.0.0"
+    },
+    {
+      "name": "uncver-discover",
+      "path": "discover",
+      "description": "Artifact registry with SQLite database",
+      "language": "go",
+      "version": "1.0.0"
+    },
+    {
+      "name": "uncver-websocket-stream",
+      "path": "websocket-stream",
+      "description": "WebSocket broadcaster for P2P communication",
+      "language": "go",
+      "version": "1.0.0"
+    },
+    {
+      "name": "uncver-redis-stream",
+      "path": "redis-stream",
+      "description": "Redis infrastructure for internal messaging",
+      "language": "docker",
+      "version": "1.0.0"
+    },
+    {
+      "name": "uncver-traefik",
+      "path": "traefik",
+      "description": "Traefik routing with DDoS protection",
+      "language": "docker",
+      "version": "1.0.0"
+    },
+    {
+      "name": "uncver-ngrok",
+      "path": "ngrok",
+      "description": "ngrok with fingerprint-based domain generation",
+      "language": "docker",
+      "version": "1.0.0"
+    }
+  ],
+  "required_artifacts": [
+    {
+      "name": "uncver-redis-stream",
+      "required": true,
+      "auto_start": true
+    },
+    {
+      "name": "uncver-websocket-stream",
+      "required": true,
+      "auto_start": true
+    },
+    {
+      "name": "uncver-discover",
+      "required": true,
+      "auto_start": true
+    }
+  ],
+  "build": {
+    "strategy": "parallel",
+    "order": [
+      "redis-stream",
+      "traefik",
+      "ngrok",
+      "websocket-stream",
+      "discover",
+      "create",
+      "start",
+      "stop",
+      "delete",
+      "share",
+      "artifacts"
+    ]
+  },
+  "websocket": {
+    "endpoint": "/notify",
+    "events": ["artifact_built", "artifact_released", "artifact_updated"]
+  }
+}

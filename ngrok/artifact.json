@@ -1,0 +1,24 @@
+{
+  "name": "uncver-ngrok",
+  "version": "1.0.0",
+  "description": "ngrok with machine fingerprint-based domain generation - creates consistent public URLs",
+  "language": "docker",
+  "build_type": "docker",
+  "author": "uncver",
+  "repository": "https://github.com/uncoverthefuture-org/uncver-artifact-lib/tree/main/ngrok",
+  "container_image": "ghcr.io/uncver/ngrok:latest",
+  "entrypoint": "/entrypoint.sh",
+  "environment": {
+    "NGROK_AUTHTOKEN": "",
+    "DEVICE_TYPE": "pc"
+  },
+  "build": {
+    "dependencies": ["docker"],
+    "steps": [
+      "docker build -t ghcr.io/uncver/ngrok:latest ."
+    ]
+  },
+  "package": {
+    "docker": true
+  }
+}

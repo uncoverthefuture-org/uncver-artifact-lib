@@ -1,0 +1,144 @@
+name: Orchestrate Artifact Builds
+
+on:
+  push:
+    branches: [main, master]
+  release:
+    types: [published]
+  workflow_dispatch:
+
+jobs:
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.changes.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Detect changed artifacts
+        id: changes
+        run: |
+          # Get list of changed directories
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            # Build all on manual trigger
+            CHANGED='["create","delete","discover","ngrok","redis-stream","share","start","stop","traefik","websocket-stream","artifacts"]'
+          else
+            # Get changed directories from commit
+            CHANGED_DIRS=$(git diff --name-only HEAD~1 HEAD | grep -E '^[a-z-]+/' | cut -d'/' -f1 | sort -u | jq -R . | jq -s . | tr -d '\n')
+            CHANGED="$CHANGED_DIRS"
+          fi
+          
+          echo "matrix={\"artifact\":$CHANGED}" >> $GITHUB_OUTPUT
+          echo "Changed artifacts: $CHANGED"
+
+  build-artifacts:
+    needs: detect-changes
+    runs-on: ubuntu-latest
+    strategy:
+      matrix: ${{ fromJson(needs.detect-changes.outputs.matrix) }}
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Build ${{ matrix.artifact }}
+        run: |
+          echo "Building ${{ matrix.artifact }}..."
+          ./scripts/build.sh ${{ matrix.artifact }}
+      
+      - name: Test ${{ matrix.artifact }}
+        run: |
+          echo "Testing ${{ matrix.artifact }}..."
+          ./scripts/test.sh ${{ matrix.artifact }}
+      
+      - name: Package ${{ matrix.artifact }}
+        run: |
+          echo "Packaging ${{ matrix.artifact }}..."
+          ./scripts/package.sh ${{ matrix.artifact }}
+      
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}-build
+          path: dist/${{ matrix.artifact }}/
+
+  notify-local-pc:
+    needs: build-artifacts
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Notify local PC via WebSocket
+        env:
+          WEBSOCKET_URL: ${{ secrets.LOCAL_WEBSOCKET_URL }}
+        run: |
+          if [ -n "$WEBSOCKET_URL" ]; then
+            echo "Notifying local PC at $WEBSOCKET_URL..."
+            
+            # Build status message
+            STATUS="success"
+            if [ "${{ needs.build-artifacts.result }}" != "success" ]; then
+              STATUS="failed"
+            fi
+            
+            # Send notification
+            curl -X POST "$WEBSOCKET_URL" \
+              -H "Content-Type: application/json" \
+              -d "{
+                \"type\": \"github_build_complete\",
+                \"repository\": \"${{ github.repository }}\",
+                \"commit\": \"${{ github.sha }}\",
+                \"status\": \"$STATUS\",
+                \"artifacts_built\": ${{ toJson(needs.build-artifacts.outputs) }},
+                \"timestamp\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"
+              }" || echo "WebSocket notification failed (PC may be offline)"
+          else
+            echo "No WEBSOCKET_URL configured, skipping notification"
+          fi
+
+  release:
+    needs: [build-artifacts, notify-local-pc]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'release'
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist/
+          pattern: "*-build"
+      
+      - name: Create release packages
+        run: |
+          mkdir -p release
+          for dir in dist/*/; do
+            name=$(basename "$dir" -build)
+            tar -czf "release/${name}-${{ github.event.release.tag_name }}.tar.gz" -C "$dir" .
+          done
+      
+      - name: Upload release assets
+        uses: softprops/action-gh-release@v1
+        with:
+          files: release/*.tar.gz
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  fire-all-artifacts:
+    needs: build-artifacts
+    runs-on: ubuntu-latest
+    if: success()
+    steps:
+      - name: Fire/trigger all artifacts
+        run: |
+          echo "All artifacts built successfully!"
+          echo "Firing up the artifact ecosystem..."
+          
+          # This would trigger the local deployment
+          # The local PC should be listening on WebSocket for this event
+          
+          curl -X POST "${{ secrets.LOCAL_WEBSOCKET_URL }}/fire" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "type": "fire_artifacts",
+              "message": "All artifacts built and ready to deploy",
+              "artifacts": ["create","delete","discover","ngrok","redis-stream","share","start","stop","traefik","websocket-stream","artifacts"]
+            }' || echo "Fire command failed (PC may be offline)"

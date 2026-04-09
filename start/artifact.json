@@ -1,0 +1,33 @@
+{
+  "name": "uncver-start",
+  "version": "1.0.0",
+  "description": "Starts uncver artifacts via Redis streams - manages Podman container lifecycle",
+  "language": "cpp",
+  "build_type": "cmake",
+  "author": "uncver",
+  "repository": "https://github.com/uncoverthefuture-org/uncver-artifact-lib/tree/main/start",
+  "container_image": "ghcr.io/uncver/start:latest",
+  "entrypoint": "uncver-start",
+  "environment": {
+    "REDIS_HOST": "localhost",
+    "REDIS_PORT": "6379"
+  },
+  "required_artifacts": [
+    {
+      "name": "uncver-redis-stream",
+      "required": true
+    }
+  ],
+  "build": {
+    "dependencies": ["cmake", "make", "g++"],
+    "steps": [
+      "mkdir -p build",
+      "cd build && cmake ..",
+      "cd build && make -j$(nproc)"
+    ]
+  },
+  "package": {
+    "files": ["uncver-start"],
+    "docker": true
+  }
+}
