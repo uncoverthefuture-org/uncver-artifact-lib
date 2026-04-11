@@ -1,0 +1,25 @@
+{
+  "artifact": "redis-stream-gui",
+  "version": "1.0.0",
+  "description": "Visual monitor for Redis streams",
+  "commands": [
+    {
+      "name": "ping",
+      "description": "Check if the monitor is online",
+      "response_format": {
+        "event": "pong",
+        "artifact": "redis-stream-gui"
+      }
+    },
+    {
+      "name": "info",
+      "description": "Get status and supported commands",
+      "response_format": {
+        "event": "info_response",
+        "artifact": "redis-stream-gui",
+        "status": "online",
+        "commands": "[Array of commands]"
+      }
+    }
+  ]
+}

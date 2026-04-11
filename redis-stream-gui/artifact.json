@@ -1,30 +1,17 @@
 {
   "name": "uncver-redis-stream-gui",
-  "version": "1.0.0",
-  "description": "Lightweight Electron GUI for monitoring Redis streams in real-time",
-  "language": "nodejs",
-  "build_type": "npm",
-  "author": "uncver",
-  "repository": "https://github.com/uncoverthefuture-org/uncver-artifact-lib/tree/main/redis-stream-gui",
-  "entrypoint": "npm start",
+  "description": "A web-based graphical interface for viewing and subscribing to Redis streams effortlessly.",
+  "url": "https://github.com/Apple/uncver-artifact-lib/tree/main/redis-stream-gui",
+  "local_path": "/Users/Apple/Desktop/Workspace/projects/app/uncover/uncver-artifact-lib/redis-stream-gui",
+  "gui_window": {
+    "enabled": true,
+    "port": 8080,
+    "width": 1400,
+    "height": 900,
+    "allow_fullscreen": false
+  },
+  "ports": ["8080:8080"],
   "environment": {
-    "REDIS_URL": "redis://localhost:6379"
-  },
-  "required_artifacts": [
-    {
-      "name": "uncver-redis-stream",
-      "required": true
-    }
-  ],
-  "build": {
-    "dependencies": ["npm", "node"],
-    "steps": [
-      "npm install",
-      "npm run build"
-    ]
-  },
-  "package": {
-    "files": ["dist/"],
-    "docker": false
+    "NODE_ENV": "production"
   }
 }

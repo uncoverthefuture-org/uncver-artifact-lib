@@ -1,0 +1,17 @@
+{
+  "name": "redis-stream-push-gui",
+  "container_image": "localhost/uncver-redis-stream-push-gui:latest",
+  "ports": ["8080:8080"],
+  "environment": {
+    "NODE_ENV": "production"
+  },
+  "gui_window": {
+    "enabled": true,
+    "port": 8080,
+    "width": 500,
+    "height": 450,
+    "x": 800,
+    "y": 150,
+    "allow_fullscreen": false
+  }
+}

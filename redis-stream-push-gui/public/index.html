@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Redis Stream Push UI</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .push-container { padding: 30px; display: flex; flex-direction: column; gap: 20px; flex: 1; }
+    .form-group { display: flex; flex-direction: column; gap: 8px; }
+    .form-group label { color: #e94560; font-weight: 600; font-size: 14px; }
+    .form-group input, .form-group textarea {
+      padding: 12px; background: #0f3460; border: 1px solid #1a1a2e; border-radius: 8px; color: #fff; font-size: 14px;
+    }
+    .form-group textarea { height: 120px; font-family: monospace; resize: none; }
+    .btn-push { padding: 14px; background: #2ecc71; border: none; border-radius: 8px; color: #fff; font-weight: bold; cursor: pointer; font-size: 16px; transition: 0.2s; }
+    .btn-push:hover { background: #27ae60; }
+    .toast { padding: 10px; border-radius: 6px; text-align: center; margin-top: 10px; opacity: 0; transition: 0.3s; }
+    .toast.success { background: rgba(46,204,113,0.2); color: #2ecc71; opacity: 1; }
+    .toast.error { background: rgba(231,76,60,0.2); color: #e74c3c; opacity: 1; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>🚀 Stream Push UI</h1>
+      <div class="connection-status" id="connectionStatus">
+        <span class="status-dot disconnected"></span>
+        <span>Disconnected</span>
+      </div>
+    </header>
+
+    <div class="push-container">
+      <div class="form-group">
+        <label>Redis Connection URL</label>
+        <div style="display:flex;gap:10px;">
+            <input type="text" id="redisUrl" value="redis://uncver-redis-stream:6379" style="flex:1">
+            <button onclick="connectRedis()" style="padding:0 20px; border-radius:6px; border:none; background:#e94560; color:white; cursor:pointer;">Connect</button>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Target Stream Name</label>
+        <input type="text" id="streamName" placeholder="mystream" value="mystream">
+      </div>
+
+      <div class="form-group">
+        <label>Payload (JSON)</label>
+        <textarea id="payloadData">{"event": "user_signup", "id": 12345}</textarea>
+      </div>
+
+      <button class="btn-push" onclick="pushToStream()">📤 Push to Stream</button>
+
+      <div id="toast" class="toast">Event Pushed!</div>
+    </div>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="renderer.js"></script>
+</body>
+</html>

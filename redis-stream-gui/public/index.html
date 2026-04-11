@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Redis Stream Monitor</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fira+Code:wght@400;500&display=swap">
+</head>
+<body>
+  <div class="app-container">
+    <!-- LEFT SIDEBAR: Controls -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="logo">
+          <span class="logo-icon">📡</span>
+          <h2>Stream Hub</h2>
+        </div>
+        <div class="status-badge" id="connectionStatus">
+          <span class="status-dot disconnected"></span>
+          <span class="status-text">Offline</span>
+        </div>
+      </div>
+
+      <div class="sidebar-scrollable">
+        <!-- Connection -->
+        <section class="control-group">
+          <h3>Connection</h3>
+          <div class="input-stack">
+            <input type="text" id="redisUrl" placeholder="redis://..." value="redis://uncver-redis-stream:6379">
+            <button onclick="connectRedis()" class="btn btn-primary">Connect System</button>
+          </div>
+        </section>
+
+        <!-- Streams list -->
+        <section class="control-group">
+          <div class="flex-header">
+            <h3>Active Streams</h3>
+            <button onclick="refreshStreams()" class="btn-icon">🔄</button>
+          </div>
+          <div id="streamList" class="stream-list">
+            <!-- Dynamic stream list items -->
+          </div>
+        </section>
+
+        <!-- Publish Message -->
+        <section class="control-group">
+          <h3>Broadcast Message</h3>
+          <div class="input-stack">
+            <input type="text" id="publishKey" placeholder="Field Key">
+            <input type="text" id="publishValue" placeholder="Field Value">
+            <button onclick="publishMessage()" class="btn btn-success">📤 Publish Now</button>
+          </div>
+        </section>
+      </div>
+
+      <div class="sidebar-footer">
+        <span>uncver v1.0.0</span>
+      </div>
+    </aside>
+
+    <!-- RIGHT SIDE: Log -->
+    <main class="main-viewport">
+      <header class="log-header">
+        <div class="stream-info">
+          <span class="stream-label">Viewing:</span>
+          <h1 id="currentStream">Null Session</h1>
+        </div>
+        <div class="log-actions">
+          <button onclick="startMonitoring()" id="monitorBtn" class="btn btn-outline" disabled>▶️ Start Stream</button>
+          <button onclick="loadMessages()" id="loadBtn" class="btn btn-outline" disabled>📥 Snapshot</button>
+          <button onclick="clearMessages()" class="btn btn-outline">🗑️ Flush</button>
+        </div>
+      </header>
+
+      <div class="log-container" id="messagesContainer">
+        <div class="log-placeholder">
+          <div class="placeholder-content">
+            <span class="placeholder-icon">⌛</span>
+            <h3>No Active Stream</h3>
+            <p>Select a stream from the command panel to begin telemetry capture.</p>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="renderer.js"></script>
+</body>
+</html>
