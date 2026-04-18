@@ -87,13 +87,23 @@ async function subscribeToResponses() {
       if (!results || results.length === 0) continue;
       
       for (const [, messages] of results) {
-        for (const [id, fields] of messages) {
-          lastId = id;
+      for (const [id, fields] of messages) {
+        lastId = id;
+        
+        try {
+          // Parse fields array as key-value pairs
+          const fieldData = {};
+          for (let i = 0; i < fields.length; i += 2) {
+            fieldData[fields[i]] = fields[i + 1];
+          }
           
-          try {
-            const dataField = fields.find((f, i) => f === 'data' && fields[i + 1]);
-            const data = dataField ? fields[fields.indexOf('data') + 1] : fields[1];
-            const message = JSON.parse(data);
+          const data = fieldData.data;
+          if (!data) {
+            console.log('Message without data field, skipping');
+            continue;
+          }
+          
+          const message = JSON.parse(data);
             
             // Only process AI responses, not our own messages
             if (message.type === 'ai_response' && message.from !== instanceId) {

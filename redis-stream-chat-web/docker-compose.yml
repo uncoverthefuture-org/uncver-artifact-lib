@@ -4,7 +4,8 @@ version: '3.8'
 
 services:
   chat-web:
-    build: .
+    build:
+      context: ./redis-stream-chat-web
     container_name: uncver-redis-stream-chat-web
     ports:
       - "3000:3000"
