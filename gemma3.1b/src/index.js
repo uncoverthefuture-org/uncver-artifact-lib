@@ -226,15 +226,23 @@ async function processStream() {
       if (!results || results.length === 0) continue;
       
       for (const [, messages] of results) {
-        for (const [id, fields] of messages) {
-          lastId = id;
+      for (const [id, fields] of messages) {
+        lastId = id;
+        
+        try {
+          // Parse fields array as key-value pairs
+          const fieldData = {};
+          for (let i = 0; i < fields.length; i += 2) {
+            fieldData[fields[i]] = fields[i + 1];
+          }
           
-          try {
-            const data = fields.find((f, i) => f === 'data' && fields[i + 1]) ? 
-              fields[fields.indexOf('data') + 1] : 
-              fields[1] || fields[0];
-            
-            const message = JSON.parse(data);
+          const data = fieldData.data;
+          if (!data) {
+            console.log('Message without data field, skipping');
+            continue;
+          }
+          
+          const message = JSON.parse(data);
             
             // Skip our own messages
             if (message.from === instanceId) {
