@@ -18,6 +18,7 @@ const config = {
   audioStream: process.env.AUDIO_STREAM || 'uncver:stream:audio',
   knowledgeStream: process.env.KNOWLEDGE_STREAM || 'uncver:stream:knowledge',
   queryStream: process.env.QUERY_STREAM || 'uncver:stream:queries',
+  discoveryStream: process.env.DISCOVERY_STREAM || 'uncver:artifacts:discovery',
   
   responseStream: process.env.RESPONSE_STREAM || 'uncver:stream:response',
   chunkSize: parseInt(process.env.CHUNK_SIZE || '500'),
@@ -32,7 +33,7 @@ const instanceId = crypto.randomBytes(8).toString('base64url');
 const sessions = new Map();
 const SESSION_TIMEOUT = 30 * 60 * 1000; // 30 minutes
 
-// Redis client
+// Redis clients
 const redis = new Redis({
   host: config.redisAddr.split(':')[0],
   port: parseInt(config.redisAddr.split(':')[1] || '6379'),
@@ -41,6 +42,8 @@ const redis = new Redis({
   maxRetriesPerRequest: null,
   enableReadyCheck: true,
 });
+
+const redisPub = redis.duplicate(); // Publisher client
 
 redis.on('connect', () => console.log('Connected to Redis'));
 redis.on('error', (err) => console.error('Redis error:', err.message));
@@ -165,10 +168,10 @@ async function processMessage(message) {
 
   for (let i = 0; i < chunks.length; i++) {
     try {
-      // Build prompt with context
-      const contextMsg = session.messages.length > 1 
-        ? `Previous context: ${session.messages.slice(0, -1).map(m => m.content).join('\n')}\n\nCurrent message: ${chunks[i]}`
-        : chunks[i];
+// Build prompt with context
+const contextMsg = session.messages.length > 1
+  ? `Previous context: ${session.messages.slice(0, -1).map(m => m.content).join('\n')}\n\nCurrent message: ${chunks[i]}`
+  : chunks[i];
       
       const response = await queryOllama(contextMsg, session);
       
@@ -198,7 +201,7 @@ async function processMessage(message) {
   };
 }
 
-// Publish response to Redis stream
+// Publish response to Redis stream and execute any commands
 async function publishResponse(originalMsg, response) {
   const responseMsg = {
     type: 'ai_response',
@@ -218,7 +221,7 @@ async function publishResponse(originalMsg, response) {
     },
   };
 
-  await redis.xadd(config.responseStream, '*', 'data', JSON.stringify(responseMsg));
+  await redisPub.xadd(config.responseStream, '*', 'data', JSON.stringify(responseMsg));
   console.log(`Published response for ${originalMsg.id} (${response.chunksCount} chunks)`);
 }
 
@@ -283,7 +286,7 @@ async function processStream() {
   }
 }
 
-// Process a specific stream by name
+// Process a specific stream by name - ALL streams are treated equally
 async function processStreamByName(streamName, type) {
   let lastId = '0';
   
@@ -311,8 +314,47 @@ async function processStreamByName(streamName, type) {
             
             const message = JSON.parse(data);
             
-            // Log the event based on type
-            console.log(`[${type}] Event: ${message.type || 'unknown'}`);
+            // Skip our own messages
+            if (message.from === instanceId) {
+              continue;
+            }
+            
+            // Extract content from any message type
+            let content = '';
+            if (message.content) {
+              content = message.content;
+            } else if (message.text) {
+              content = message.text;
+            } else if (message.path) {
+              content = `${type}: ${message.path}`;
+            } else if (message.subject && message.predicate) {
+              content = `Knowledge: ${message.subject} ${message.predicate} ${message.object || ''}`;
+            } else {
+              content = JSON.stringify(message).slice(0, 200);
+            }
+            
+            if (!content) {
+              console.log(`[${type}] No content to process`);
+              continue;
+            }
+            
+            console.log(`[${type}] Processing: ${content.substring(0, 50)}...`);
+            
+            // Create synthetic message for processing
+            const syntheticMsg = {
+              type: message.type || type,
+              id: message.id || id,
+              content: content,
+              from: message.from || 'system',
+              timestamp: message.timestamp || new Date().toISOString(),
+              sourceStream: streamName,
+              sourceType: type,
+            };
+            
+            // Process through AI (chunked)
+            processMessage(syntheticMsg)
+              .then(response => publishResponse(syntheticMsg, response))
+              .catch(err => console.error('Processing error:', err));
             
           } catch (err) {
             console.error(`[${type}] Failed to parse:`, err.message);
