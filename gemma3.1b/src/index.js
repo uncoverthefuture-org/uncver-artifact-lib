@@ -9,11 +9,20 @@ const config = {
   ollamaUrl: process.env.OLLAMA_URL || 'http://localhost:11434',
   ollamaModel: process.env.OLLAMA_MODEL || 'gemma3:1b',
   port: parseInt(process.env.CONFIG_PORT || '8080'),
+  
+  // Listen to ALL streams
   inputStream: process.env.INPUT_STREAM || 'uncver:stream:input',
+  fileWrittenStream: process.env.FILE_WRITTEN_STREAM || 'uncver:file:written',
+  fileContentStream: process.env.FILE_CONTENT_STREAM || 'uncver:file:content',
+  folderCreatedStream: process.env.FOLDER_CREATED_STREAM || 'uncver:folder:created',
+  audioStream: process.env.AUDIO_STREAM || 'uncver:stream:audio',
+  knowledgeStream: process.env.KNOWLEDGE_STREAM || 'uncver:stream:knowledge',
+  queryStream: process.env.QUERY_STREAM || 'uncver:stream:queries',
+  
   responseStream: process.env.RESPONSE_STREAM || 'uncver:stream:response',
-  chunkSize: parseInt(process.env.CHUNK_SIZE || '200'),
-  chunkOverlap: parseInt(process.env.CHUNK_OVERLAP || '20'),
-  maxChunks: parseInt(process.env.MAX_CHUNKS || '5'),
+  chunkSize: parseInt(process.env.CHUNK_SIZE || '500'),
+  chunkOverlap: parseInt(process.env.CHUNK_OVERLAP || '50'),
+  maxChunks: parseInt(process.env.MAX_CHUNKS || '10'),
 };
 
 // Generate instance ID
@@ -274,6 +283,49 @@ async function processStream() {
   }
 }
 
+// Process a specific stream by name
+async function processStreamByName(streamName, type) {
+  let lastId = '0';
+  
+  console.log(`Listening on ${type} stream: ${streamName}`);
+  
+  while (true) {
+    try {
+      const results = await redis.xread('BLOCK', 5000, 'STREAMS', streamName, lastId);
+      
+      if (!results || results.length === 0) continue;
+      
+      for (const [, messages] of results) {
+        for (const [id, fields] of messages) {
+          lastId = id;
+          
+          try {
+            // Parse fields as key-value pairs
+            const fieldData = {};
+            for (let i = 0; i < fields.length; i += 2) {
+              fieldData[fields[i]] = fields[i + 1];
+            }
+            
+            const data = fieldData.data;
+            if (!data) continue;
+            
+            const message = JSON.parse(data);
+            
+            // Log the event based on type
+            console.log(`[${type}] Event: ${message.type || 'unknown'}`);
+            
+          } catch (err) {
+            console.error(`[${type}] Failed to parse:`, err.message);
+          }
+        }
+      }
+    } catch (err) {
+      console.error(`[${type}] Stream error:`, err.message);
+      await new Promise(r => setTimeout(r, 1000));
+    }
+  }
+}
+
 // Simple HTTP server for health checks
 const server = http.createServer((req, res) => {
   res.setHeader('Content-Type', 'application/json');
@@ -296,26 +348,41 @@ const server = http.createServer((req, res) => {
 // Start everything
 async function start() {
   console.log('=========================================');
-  console.log('  Gemma 3.1B Redis Stream Listener');
+  console.log(' Gemma 3.1B Redis Stream Listener');
   console.log('=========================================');
   console.log(`Instance ID: ${instanceId}`);
   console.log(`Model: ${config.ollamaModel}`);
   console.log(`Ollama URL: ${config.ollamaUrl}`);
-  console.log(`Input Stream: ${config.inputStream}`);
+  console.log('Listening to streams:');
+  console.log(`  - ${config.inputStream} (chat input)`);
+  console.log(`  - ${config.fileWrittenStream} (file operations)`);
+  console.log(`  - ${config.fileContentStream} (file reads)`);
+  console.log(`  - ${config.folderCreatedStream} (folder operations)`);
+  console.log(`  - ${config.audioStream} (audio)`);
+  console.log(`  - ${config.knowledgeStream} (knowledge writes)`);
+  console.log(`  - ${config.queryStream} (knowledge queries)`);
   console.log(`Response Stream: ${config.responseStream}`);
   console.log(`Chunk Size: ${config.chunkSize}, Overlap: ${config.chunkOverlap}`);
   console.log('=========================================');
 
   // Start HTTP server
   server.listen(config.port, () => {
-    console.log(`Health check available at http://localhost:${config.port}/health`);
+    console.log(`Health check: http://localhost:${config.port}/health`);
   });
 
   // Wait for Redis connection
   await redis.ping();
+
+  // Start processing ALL streams
+  processStream(); // Main chat input
+  processStreamByName(config.fileWrittenStream, 'file_written');
+  processStreamByName(config.fileContentStream, 'file_read');
+  processStreamByName(config.folderCreatedStream, 'folder_created');
+  processStreamByName(config.audioStream, 'audio');
+  processStreamByName(config.knowledgeStream, 'knowledge');
+  processStreamByName(config.queryStream, 'query');
   
-  // Start processing
-  processStream();
+  console.log('All stream listeners started');
 }
 
 // Graceful shutdown
