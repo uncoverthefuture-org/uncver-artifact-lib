@@ -1,0 +1,12 @@
+{
+  "name": "uncver-folder-create",
+  "version": "1.0.0",
+  "description": "Creates folders via Redis streams",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js"
+  },
+  "dependencies": {
+    "ioredis": "^5.3.2"
+  }
+}

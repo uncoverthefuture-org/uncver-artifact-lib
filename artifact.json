@@ -110,6 +110,34 @@
       "description": "Electron GUI for monitoring Redis streams",
       "language": "nodejs",
       "version": "1.0.0"
+    },
+    {
+      "name": "uncver-redis-stream-chat-web",
+      "path": "redis-stream-chat-web",
+      "description": "Web chat interface for Redis stream AI communication",
+      "language": "nodejs",
+      "version": "1.0.0"
+    },
+    {
+      "name": "uncver-file-write",
+      "path": "file-write",
+      "description": "Writes content to files via Redis streams",
+      "language": "nodejs",
+      "version": "1.0.0"
+    },
+    {
+      "name": "uncver-file-read",
+      "path": "file-read",
+      "description": "Reads file content via Redis streams",
+      "language": "nodejs",
+      "version": "1.0.0"
+    },
+    {
+      "name": "uncver-folder-create",
+      "path": "folder-create",
+      "description": "Creates folders via Redis streams",
+      "language": "nodejs",
+      "version": "1.0.0"
     }
   ],
   "required_artifacts": [

@@ -1,0 +1,50 @@
+{
+  "name": "uncver-folder-create",
+  "version": "1.0.0",
+  "description": "Creates folders via Redis streams",
+  "type": "file-operation",
+  "author": "uncver",
+  "repository": "https://github.com/uncoverthefuture-org/uncver-artifact-lib",
+  "language": "nodejs",
+  "license": "MIT",
+  "entrypoints": {
+    "server": "src/index.js",
+    "docker": "Dockerfile"
+  },
+  "environment": {
+    "REDIS_ADDR": "localhost:6379",
+    "REDIS_PASSWORD": "",
+    "INPUT_STREAM": "uncver:folder:create",
+    "OUTPUT_STREAM": "uncver:folder:created",
+    "ERROR_STREAM": "uncver:folder:errors",
+    "BASE_DIR": "/data"
+  },
+  "ports": {
+    "http": 8080
+  },
+  "volumes": [
+    {
+      "name": "file-data",
+      "path": "/data",
+      "description": "Directory where folders are created"
+    }
+  ],
+  "build": {
+    "command": "docker build -t uncver-folder-create ."
+  },
+  "run": {
+    "command": "docker-compose up -d",
+    "stop_command": "docker-compose down"
+  },
+  "healthcheck": {
+    "endpoint": "/health",
+    "port": 8080
+  },
+  "features": [
+    "folder-create",
+    "folder-delete",
+    "folder-exists",
+    "recursive-create",
+    "redis-streams"
+  ]
+}

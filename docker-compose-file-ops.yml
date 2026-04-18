@@ -1,0 +1,85 @@
+# Docker Compose for file operation artifacts
+# All listen to Redis streams and perform file actions
+version: '3.8'
+
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: uncver-redis-file-ops
+    ports:
+      - "6380:6379"
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes
+    networks:
+      - uncver-network
+
+  # File Write - listens to uncver:file:write stream
+  file-write:
+    build: ./file-write
+    container_name: uncver-file-write
+    environment:
+      - REDIS_ADDR=redis:6379
+      - REDIS_PASSWORD=
+      - INPUT_STREAM=uncver:file:write
+      - OUTPUT_STREAM=uncver:file:written
+      - ERROR_STREAM=uncver:file:errors
+      - BASE_DIR=/data
+    volumes:
+      - file-data:/data
+    networks:
+      - uncver-network
+    depends_on:
+      - redis
+    restart: unless-stopped
+
+  # File Read - listens to uncver:file:read stream
+  file-read:
+    build: ./file-read
+    container_name: uncver-file-read
+    environment:
+      - REDIS_ADDR=redis:6379
+      - REDIS_PASSWORD=
+      - INPUT_STREAM=uncver:file:read
+      - OUTPUT_STREAM=uncver:file:content
+      - ERROR_STREAM=uncver:file:errors
+      - BASE_DIR=/data
+    volumes:
+      - file-data:/data
+    networks:
+      - uncver-network
+    depends_on:
+      - redis
+      - file-write
+    restart: unless-stopped
+
+  # Folder Create - listens to uncver:folder:create stream
+  folder-create:
+    build: ./folder-create
+    container_name: uncver-folder-create
+    environment:
+      - REDIS_ADDR=redis:6379
+      - REDIS_PASSWORD=
+      - INPUT_STREAM=uncver:folder:create
+      - OUTPUT_STREAM=uncver:folder:created
+      - ERROR_STREAM=uncver:folder:errors
+      - BASE_DIR=/data
+    volumes:
+      - file-data:/data
+    networks:
+      - uncver-network
+    depends_on:
+      - redis
+    restart: unless-stopped
+
+volumes:
+  redis-data:
+    driver: local
+  file-data:
+    driver: local
+    name: uncver-file-data
+
+networks:
+  uncver-network:
+    driver: bridge
+    name: uncver-network

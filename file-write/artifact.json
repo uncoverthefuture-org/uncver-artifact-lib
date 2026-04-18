@@ -1,0 +1,49 @@
+{
+  "name": "uncver-file-write",
+  "version": "1.0.0",
+  "description": "Writes content to files via Redis streams",
+  "type": "file-operation",
+  "author": "uncver",
+  "repository": "https://github.com/uncoverthefuture-org/uncver-artifact-lib",
+  "language": "nodejs",
+  "license": "MIT",
+  "entrypoints": {
+    "server": "src/index.js",
+    "docker": "Dockerfile"
+  },
+  "environment": {
+    "REDIS_ADDR": "localhost:6379",
+    "REDIS_PASSWORD": "",
+    "INPUT_STREAM": "uncver:file:write",
+    "OUTPUT_STREAM": "uncver:file:written",
+    "ERROR_STREAM": "uncver:file:errors",
+    "BASE_DIR": "/data"
+  },
+  "ports": {
+    "http": 8080
+  },
+  "volumes": [
+    {
+      "name": "file-data",
+      "path": "/data",
+      "description": "Directory where files are written"
+    }
+  ],
+  "build": {
+    "command": "docker build -t uncver-file-write ."
+  },
+  "run": {
+    "command": "docker-compose up -d",
+    "stop_command": "docker-compose down"
+  },
+  "healthcheck": {
+    "endpoint": "/health",
+    "port": 8080
+  },
+  "features": [
+    "file-write",
+    "redis-streams",
+    "directory-auto-create",
+    "append-mode"
+  ]
+}
