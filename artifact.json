@@ -98,6 +98,13 @@
       "version": "1.0.0"
     },
     {
+      "name": "uncver-gemma3-1b-listener",
+      "path": "gemma3.1b",
+      "description": "Local AI-powered Redis stream listener using Ollama and Google Gemma 3 1B",
+      "language": "go",
+      "version": "1.0.0"
+    },
+    {
       "name": "uncver-redis-stream-gui",
       "path": "redis-stream-gui",
       "description": "Electron GUI for monitoring Redis streams",

@@ -1,0 +1,49 @@
+# Docker Compose for testing gemma3.1b listener
+# Assumes uncver-redis-stream is running separately
+# For production: ensure uncver-network exists (docker network create uncver-network)
+version: '3.8'
+
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: uncver-redis-gemma-test
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes
+    networks:
+      - uncver-network
+
+  gemma3-listener:
+    build: .
+    container_name: uncver-gemma3-1b-listener
+    ports:
+      - "8080:8080"
+    environment:
+      - REDIS_ADDR=redis:6379
+      - REDIS_PASSWORD=
+      - OLLAMA_URL=http://host.docker.internal:11434
+      - OLLAMA_MODEL=gemma3:1b
+      - CONFIG_PORT=8080
+      - INPUT_STREAM=uncver:stream:input
+      - RESPONSE_STREAM=uncver:stream:response
+      - CHUNK_SIZE=200
+      - CHUNK_OVERLAP=20
+      - MAX_CHUNKS=5
+    networks:
+      - uncver-network
+    depends_on:
+      - redis
+    restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+volumes:
+  redis-data:
+    driver: local
+
+networks:
+  uncver-network:
+    driver: bridge
+    name: uncver-network

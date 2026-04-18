@@ -1,0 +1,56 @@
+{
+  "name": "uncver-gemma3-1b-listener",
+  "version": "1.0.0",
+  "description": "Local AI-powered Redis stream listener using Ollama and Google Gemma 3 1B with text chunking",
+  "type": "ai-listener",
+  "author": "uncver",
+  "repository": "https://github.com/uncoverthefuture-org/uncver-artifact-lib",
+  "language": "go",
+  "license": "MIT",
+  "entrypoints": {
+    "server": "cmd/server/main.go",
+    "docker": "Dockerfile"
+  },
+  "environment": {
+    "OLLAMA_URL": "http://localhost:11434",
+    "OLLAMA_MODEL": "gemma3:1b",
+    "REDIS_ADDR": "localhost:6379",
+    "REDIS_PASSWORD": "",
+    "CONFIG_PORT": "8080",
+    "INPUT_STREAM": "uncver:stream:input",
+    "RESPONSE_STREAM": "uncver:stream:response",
+    "CHUNK_SIZE": "100",
+    "CHUNK_OVERLAP": "20",
+    "MAX_CHUNKS": "10"
+  },
+  "ports": {
+    "http": 8080,
+    "ollama": 11434
+  },
+  "dependencies": [
+    "redis",
+    "ollama"
+  ],
+  "build": {
+    "command": "docker build -t uncver-gemma3-1b-listener .",
+    "pre_build": [
+      "go mod tidy"
+    ]
+  },
+  "run": {
+    "command": "docker-compose up -d",
+    "stop_command": "docker-compose down"
+  },
+  "healthcheck": {
+    "endpoint": "/health",
+    "port": 8080,
+    "interval": "30s"
+  },
+  "features": [
+    "local-ai-processing",
+    "text-chunking",
+    "redis-streams",
+    "websocket-gui",
+    "ollama-integration"
+  ]
+}

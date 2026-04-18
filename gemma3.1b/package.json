@@ -1,0 +1,12 @@
+{
+  "name": "uncver-gemma3-1b-listener",
+  "version": "1.0.0",
+  "description": "Lightweight Redis stream listener for Ollama AI",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js"
+  },
+  "dependencies": {
+    "ioredis": "^5.3.2"
+  }
+}
