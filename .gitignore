@@ -31,3 +31,4 @@ dist/
 # Environment
 .env
 .env.local
+node_modules/

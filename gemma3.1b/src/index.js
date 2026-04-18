@@ -414,6 +414,21 @@ async function start() {
 
   // Wait for Redis connection
   await redis.ping();
+  await redisPub.ping();
+  
+  // Announce discovery
+  await redisPub.xadd('uncver:artifacts:discovery', '*', 'data', JSON.stringify({
+    type: 'artifact_started',
+    name: 'uncver-gemma3-1b-listener',
+    instance: instanceId,
+    capabilities: ['ai_response', 'text_processing', 'chunking'],
+    streams: {
+      input: config.inputStream,
+      output: config.responseStream,
+    },
+    timestamp: new Date().toISOString(),
+  }));
+  console.log('Announced discovery to uncver:artifacts:discovery');
 
   // Start processing ALL streams
   processStream(); // Main chat input

@@ -1,0 +1,14 @@
+{
+  "name": "uncver-mic-capture",
+  "version": "1.0.0",
+  "description": "Captures microphone audio and streams to Redis",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js"
+  },
+  "dependencies": {
+    "ioredis": "^5.3.2",
+    "node-microphone": "^0.1.6",
+    "uuid": "^9.0.1"
+  }
+}

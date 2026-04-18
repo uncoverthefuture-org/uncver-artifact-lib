@@ -1,0 +1,14 @@
+{
+  "name": "uncver-whisper-transcribe",
+  "version": "1.0.0",
+  "description": "Receives audio from Redis, transcribes with Whisper, sends text to chat",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js"
+  },
+  "dependencies": {
+    "ioredis": "^5.3.2",
+    "openai": "^4.28.0",
+    "uuid": "^9.0.1"
+  }
+}
