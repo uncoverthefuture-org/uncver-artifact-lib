@@ -1,0 +1,45 @@
+{
+  "name": "uncver-redis-stream-chat-web",
+  "version": "1.0.0",
+  "description": "Web chat interface for Redis stream AI communication with Gemma",
+  "type": "web-interface",
+  "author": "uncver",
+  "repository": "https://github.com/uncoverthefuture-org/uncver-artifact-lib",
+  "language": "nodejs",
+  "license": "MIT",
+  "entrypoints": {
+    "server": "src/server.js",
+    "docker": "Dockerfile"
+  },
+  "environment": {
+    "PORT": "3000",
+    "REDIS_ADDR": "localhost:6379",
+    "REDIS_PASSWORD": "",
+    "INPUT_STREAM": "uncver:stream:input",
+    "RESPONSE_STREAM": "uncver:stream:response"
+  },
+  "ports": {
+    "http": 3000
+  },
+  "dependencies": [
+    "redis"
+  ],
+  "build": {
+    "command": "docker build -t uncver-redis-stream-chat-web ."
+  },
+  "run": {
+    "command": "docker-compose up -d",
+    "stop_command": "docker-compose down"
+  },
+  "healthcheck": {
+    "endpoint": "/health",
+    "port": 3000
+  },
+  "features": [
+    "websocket-chat",
+    "redis-streams",
+    "session-management",
+    "message-history",
+    "real-time-updates"
+  ]
+}

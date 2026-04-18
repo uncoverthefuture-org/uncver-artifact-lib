@@ -1,0 +1,24 @@
+# Docker Compose for testing redis-stream-chat-web
+# Connects to existing uncver-redis-stream network
+version: '3.8'
+
+services:
+  chat-web:
+    build: .
+    container_name: uncver-redis-stream-chat-web
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - REDIS_ADDR=${REDIS_ADDR:-redis:6379}
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
+      - INPUT_STREAM=${INPUT_STREAM:-uncver:stream:input}
+      - RESPONSE_STREAM=${RESPONSE_STREAM:-uncver:stream:response}
+    networks:
+      - uncver-network
+    restart: unless-stopped
+
+networks:
+  uncver-network:
+    driver: bridge
+    name: uncver-network
