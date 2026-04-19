@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.1.0](https://github.com/uncoverthefuture-org/uncver-artifact-lib/compare/v1.0.4...v1.1.0) (2026-04-19)
+
+
+### Features
+
+* add uncver-piper - TTS aggregator that batches Redis stream messages and speaks them sequentially ([c75eb87](https://github.com/uncoverthefuture-org/uncver-artifact-lib/commit/c75eb87bae69f04eaaca288882ee835121cbeade))
+* implement new Redis Stream Push GUI and refactor existing monitoring interface ([44cfee9](https://github.com/uncoverthefuture-org/uncver-artifact-lib/commit/44cfee9ee6d222d44b61971b16381c5ba8a37631))
+
+
+### Bug Fixes
+
+* add missing main.go for piper, fix go mod tidy ([622ff06](https://github.com/uncoverthefuture-org/uncver-artifact-lib/commit/622ff064c19d1e951c247c3a76e6c829ebf7ef79))
+
 ## [1.0.4](https://github.com/uncoverthefuture-org/uncver-artifact-lib/compare/v1.0.3...v1.0.4) (2026-04-09)
 
 
