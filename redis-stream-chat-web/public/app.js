@@ -287,5 +287,113 @@ setInterval(() => {
   }
 }, 30000);
 
+// Web Speech API for voice input and TTS
+let recognition = null;
+let isListening = false;
+
+// Initialize speech recognition
+function initSpeechRecognition() {
+  if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+    console.log('Speech recognition not supported');
+    return null;
+  }
+  
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const rec = new SpeechRecognition();
+  rec.continuous = false;
+  rec.interimResults = false;
+  rec.lang = 'en-US';
+  
+  rec.onstart = () => {
+    console.log('Listening...');
+    isListening = true;
+    document.getElementById('voiceBtn').classList.add('listening');
+  };
+  
+  rec.onend = () => {
+    console.log('Stopped listening');
+    isListening = false;
+    document.getElementById('voiceBtn').classList.remove('listening');
+  };
+  
+  rec.onresult = (event) => {
+    const transcript = event.results[0][0].transcript;
+    console.log('Heard:', transcript);
+    messageInput.value = transcript;
+    charCount.textContent = `${transcript.length}/2000`;
+    // Auto send after voice input
+    setTimeout(sendMessage, 500);
+  };
+  
+  rec.onerror = (err) => {
+    console.error('Speech error:', err);
+    isListening = false;
+    document.getElementById('voiceBtn').classList.remove('listening');
+  };
+  
+  return rec;
+}
+
+// Toggle voice recognition
+function toggleVoice() {
+  if (!recognition) {
+    recognition = initSpeechRecognition();
+    if (!recognition) {
+      showToast('Voice not supported in this browser', 'error');
+      return;
+    }
+  }
+  
+  if (isListening) {
+    recognition.stop();
+  } else {
+    recognition.start();
+  }
+}
+
+// Text-to-speech for AI responses
+function speakText(text) {
+  if (!('speechSynthesis' in window)) {
+    console.log('TTS not supported');
+    return;
+  }
+  
+  // Cancel any ongoing speech
+  window.speechSynthesis.cancel();
+  
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.rate = 1.0;
+  utterance.pitch = 1.0;
+  utterance.volume = 1.0;
+  
+  // Try to get a good voice
+  const voices = window.speechSynthesis.getVoices();
+  const englishVoice = voices.find(v => v.lang.includes('en'));
+  if (englishVoice) {
+    utterance.voice = englishVoice;
+  }
+  
+  utterance.onstart = () => console.log('Speaking:', text.substring(0, 50) + '...');
+  utterance.onerror = (err) => console.error('TTS error:', err);
+  
+  window.speechSynthesis.speak(utterance);
+}
+
+// Modify handleMessage to speak AI responses
+const originalHandleMessage = handleMessage;
+handleMessage = function(msg) {
+  // Call original handler
+  originalHandleMessage(msg);
+  
+  // Speak AI responses
+  if (msg.type === 'ai_message' && msg.content) {
+    // Only speak the first sentence to avoid too much audio
+    const firstSentence = msg.content.split(/[.!?]+/)[0];
+    if (firstSentence) {
+      speakText(firstSentence + '.');
+    }
+  }
+};
+
 // Connect on load
 connect();
