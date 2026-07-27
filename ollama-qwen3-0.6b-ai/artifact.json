@@ -6,7 +6,7 @@
   "build_type": "docker",
   "author": "uncver",
   "repository": "https://github.com/uncoverthefuture-org/uncver-artifact-lib/tree/main/ollama-qwen3-0.6b-ai",
-  "container_image": "uncver-ollama-qwen3-0.6b-ai",
+  "container_image": "docker.io/uncoverthefuture/ollama-qwen3-0.6b-ai:latest",
   "ports": [],
   "environment": {
     "REDIS_HOST": "uncver-redis-stream",
@@ -21,11 +21,11 @@
   "dependencies": ["podman"],
   "build": {
     "steps": [
-      "podman build -t uncver-ollama-qwen3-0.6b-ai ."
+      "podman build -t docker.io/uncoverthefuture/ollama-qwen3-0.6b-ai:latest ."
     ]
   },
   "run": {
-    "command": "podman run -d --name uncver-ollama-qwen3-0.6b-ai --network uncver-network -v ollama-models:/root/.ollama -e REDIS_HOST=uncver-redis-stream -e REDIS_PORT=6379 -e SHARED_STREAM=uncver:ai:router -e OLLAMA_MODEL=qwen3:0.6b uncver-ollama-qwen3-0.6b-ai",
+    "command": "podman run -d --name uncver-ollama-qwen3-0.6b-ai --network uncver-network -v ollama-models:/root/.ollama -e REDIS_HOST=uncver-redis-stream -e REDIS_PORT=6379 -e SHARED_STREAM=uncver:ai:router -e OLLAMA_MODEL=qwen3:0.6b docker.io/uncoverthefuture/ollama-qwen3-0.6b-ai:latest",
     "stop_command": "podman rm -f uncver-ollama-qwen3-0.6b-ai"
   }
 }

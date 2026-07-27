@@ -15,7 +15,7 @@ permissions:
 
 env:
   REGISTRY: docker.io
-  REGISTRY_USER: ${{ vars.DOCKER_USERNAME || 'sirdavis99' }}
+  REGISTRY_USER: ${{ vars.DOCKER_USERNAME || 'uncoverthefuture' }}
 
 jobs:
   detect:
