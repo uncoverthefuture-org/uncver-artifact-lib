@@ -140,9 +140,16 @@
       "version": "1.0.0"
     },
     {
+      "name": "uncver-ollama",
+      "path": "ollama",
+      "description": "Ollama LLM server — serves all artifacts on uncver-network",
+      "language": "docker",
+      "version": "1.0.0"
+    },
+    {
       "name": "uncver-ollama-qwen3-0.6b-ai",
       "path": "ollama-qwen3-0.6b-ai",
-      "description": "AI router on Redis stream with embedded Ollama (qwen3:0.6b) — full tool calling",
+      "description": "AI router on Redis stream — connects to uncver-ollama for LLM inference",
       "language": "typescript",
       "version": "1.0.0"
     },
@@ -164,6 +171,11 @@
   "required_artifacts": [
     {
       "name": "uncver-redis-stream",
+      "required": true,
+      "auto_start": true
+    },
+    {
+      "name": "uncver-ollama",
       "required": true,
       "auto_start": true
     },

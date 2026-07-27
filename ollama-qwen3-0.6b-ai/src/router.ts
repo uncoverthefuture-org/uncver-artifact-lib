@@ -50,10 +50,11 @@ export class Router {
     redisHost: string,
     redisPort: number,
     stream: string,
-    model: string
+    model: string,
+    ollamaBaseUrl?: string
   ) {
     this.redis = new RedisClient(redisHost, redisPort);
-    this.ollama = new OllamaClient();
+    this.ollama = new OllamaClient(ollamaBaseUrl);
     this.stream = stream;
     this.model = model;
   }

@@ -1,0 +1,17 @@
+{
+  "name": "uncver-ollama",
+  "version": "1.0.0",
+  "description": "Ollama LLM server with qwen3:0.6b — serves all artifacts on uncver-network",
+  "language": "docker",
+  "author": "uncver",
+  "repository": "https://github.com/uncoverthefuture-org/uncver-artifact-lib/tree/main/ollama",
+  "container_image": "docker.io/uncoverthefuture/uncver-ollama:latest",
+  "ports": ["11434:11434"],
+  "environment": {
+    "OLLAMA_HOST": "0.0.0.0",
+    "OLLAMA_KEEP_ALIVE": "5m",
+    "OLLAMA_MODEL": "qwen3:0.6b"
+  },
+  "volumes": ["ollama-models:/root/.ollama"],
+  "network": "uncver-network"
+}
