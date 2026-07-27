@@ -1,35 +1,39 @@
 {
   "name": "uncver-redis-stream-chat-web",
-  "version": "1.0.0",
-  "description": "Web chat interface for Redis stream AI communication with Gemma",
+  "version": "1.1.0",
+  "description": "Artifacts Stream — Redis stream chat + live stream viewer UI",
   "type": "web-interface",
   "author": "uncver",
   "repository": "https://github.com/uncoverthefuture-org/uncver-artifact-lib",
   "language": "nodejs",
   "license": "MIT",
+  "container_image": "docker.io/uncoverthefuture/artifacts-stream-artifact:latest",
   "entrypoints": {
     "server": "src/server.js",
     "docker": "Dockerfile"
   },
   "environment": {
     "PORT": "3000",
-    "REDIS_ADDR": "localhost:6379",
+    "REDIS_ADDR": "uncver-redis-stream:6379",
     "REDIS_PASSWORD": "",
-    "INPUT_STREAM": "uncver:stream:input",
-    "RESPONSE_STREAM": "uncver:stream:response"
+    "STREAM": "uncver:ai:router"
   },
-  "ports": {
-    "http": 3000
+  "ports": ["3000:3000"],
+  "network": "uncver-network",
+  "gui_window": {
+    "enabled": true,
+    "port": 3000
   },
   "dependencies": [
-    "redis"
+    "redis",
+    "ai-router"
   ],
   "build": {
-    "command": "docker build -t uncver-redis-stream-chat-web ."
+    "command": "podman build -t artifacts-stream-artifact ."
   },
   "run": {
-    "command": "docker-compose up -d",
-    "stop_command": "docker-compose down"
+    "command": "podman run -d --name artifacts-stream --network uncver-network -p 3000:3000 -e REDIS_ADDR=uncver-redis-stream:6379 -e STREAM=uncver:ai:router artifacts-stream-artifact",
+    "stop_command": "podman stop artifacts-stream && podman rm artifacts-stream"
   },
   "healthcheck": {
     "endpoint": "/health",
@@ -40,6 +44,9 @@
     "redis-streams",
     "session-management",
     "message-history",
-    "real-time-updates"
+    "real-time-updates",
+    "live-stream-viewer",
+    "native-window",
+    "random-source-colors"
   ]
 }

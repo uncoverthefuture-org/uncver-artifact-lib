@@ -1,12 +1,12 @@
 {
-  "name": "uncver-redis-stream-chat-web",
-  "version": "1.0.0",
-  "description": "Web chat interface for Redis stream AI communication with Gemma",
+  "name": "artifacts-stream",
+  "version": "1.1.0",
+  "description": "Artifacts Stream — Redis stream chat + live stream viewer UI",
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js"
   },
-  "keywords": ["redis", "chat", "web", "gemma", "ollama", "ai"],
+  "keywords": ["redis", "stream", "chat", "viewer", "uncver", "artifacts"],
   "author": "uncver",
   "license": "MIT",
   "dependencies": {

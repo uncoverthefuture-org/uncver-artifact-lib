@@ -13,15 +13,14 @@ RUN CGO_ENABLED=0 GOOS=linux go build -o uncver-whisper ./cmd/server/
 
 FROM docker.io/library/alpine:3.19
 
-RUN apk add --no-cache sox bash
+RUN apk add --no-cache sox bash alsa-utils
 
 WORKDIR /app
 
 COPY --from=builder /app/uncver-whisper .
 
 ENV REDIS_ADDR=uncver-redis-stream:6379
-ENV TEXT_STREAM=uncver:stream:audio:text
-ENV REGISTRY_STREAM=uncver:stream:registry
+ENV OUTPUT_STREAM=uncver:ai:router
 ENV CHUNK_DURATION_SEC=5
 ENV SAMPLE_RATE=16000
 

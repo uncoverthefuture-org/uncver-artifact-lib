@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
 	"log"
 	"os"
@@ -16,17 +15,17 @@ import (
 )
 
 var (
-	redisAddr      = getEnv("REDIS_ADDR", "localhost:6379")
-	registryStream = getEnv("REGISTRY_STREAM", "uncver:stream:registry")
-	textStream     = getEnv("TEXT_STREAM", "uncver:stream:audio:text")
-	chunkDurSec    = getEnv("CHUNK_DURATION_SEC", "5")
-	sampleRate     = getEnv("SAMPLE_RATE", "16000")
-	instanceID     = generateInstanceID()
+	redisAddr    = getEnv("REDIS_ADDR", "localhost:6379")
+	outputStream = getEnv("OUTPUT_STREAM", "uncver:ai:router")
+	alsaDevice   = getEnv("ALSA_DEVICE", "hw:0,6")
+	chunkDurSec  = getEnv("CHUNK_DURATION_SEC", "5")
+	sampleRate   = getEnv("SAMPLE_RATE", "16000")
+	instanceID   = generateInstanceID()
 )
 
 func main() {
 	log.SetOutput(os.Stdout)
-	log.Printf("[whisper] Starting uncver-whisper - Instance: %s", instanceID)
+	log.Printf("[whisper] Starting - Instance: %s", instanceID)
 
 	ctx := context.Background()
 	rdb := redis.NewClient(&redis.Options{Addr: redisAddr})
@@ -37,9 +36,7 @@ func main() {
 	}
 	log.Printf("[whisper] Connected to Redis")
 
-	broadcastCapability(ctx, rdb)
-
-	go listenForBroadcastRequests(ctx, rdb)
+	publishWelcome(ctx, rdb)
 
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
@@ -66,10 +63,30 @@ func main() {
 	}
 }
 
+func publishWelcome(ctx context.Context, rdb *redis.Client) {
+	now := time.Now().Unix()
+	_, err := rdb.XAdd(ctx, &redis.XAddArgs{
+		Stream: outputStream,
+		MaxLen: 1000,
+		Approx: true,
+		Values: map[string]interface{}{
+			"source":    "whisper",
+			"type":      "announce",
+			"data":      "Whisper ready — you can now speak directly to your microphone and I will transcribe in real time.",
+			"timestamp": now,
+		},
+	}).Result()
+	if err != nil {
+		log.Printf("[whisper] Failed to publish welcome: %v", err)
+	} else {
+		log.Printf("[whisper] Welcome message published to %s", outputStream)
+	}
+}
+
 func captureAndTranscribe(ctx context.Context, rdb *redis.Client, chunkNum int) error {
 	msgID := fmt.Sprintf("%s-%d-%d", instanceID, time.Now().UnixNano(), chunkNum)
 
-	cmd := exec.Command("sox", "-d", "-r", sampleRate, "-c", "1", "-b", "16", "-t", "raw", "-",
+	cmd := exec.Command("sox", "-t", "alsa", alsaDevice, "-r", sampleRate, "-c", "1", "-b", "16", "-t", "raw", "-",
 		"silence", "1", "0.1", "100%", "1", "0.1", "100%")
 	var rawAudio []byte
 	cmd.Stdout = &audioWriter{buf: &rawAudio}
@@ -102,13 +119,13 @@ func captureAndTranscribe(ctx context.Context, rdb *redis.Client, chunkNum int) 
 	}
 
 	_, err = rdb.XAdd(ctx, &redis.XAddArgs{
-		Stream: textStream,
+		Stream: outputStream,
 		MaxLen: 1000,
 		Approx: true,
 		Values: map[string]interface{}{
+			"source":    "whisper",
 			"type":      "transcription",
-			"chunk_id":  msgID,
-			"text":      text,
+			"data":      text,
 			"instance":  instanceID,
 			"timestamp": time.Now().Unix(),
 		},
@@ -121,62 +138,14 @@ func captureAndTranscribe(ctx context.Context, rdb *redis.Client, chunkNum int) 
 	return nil
 }
 
-func broadcastCapability(ctx context.Context, rdb *redis.Client) {
-	cap := map[string]interface{}{
-		"type":        "capability",
-		"name":        "uncver-whisper",
-		"instance":    instanceID,
-		"description": "Captures mic audio and transcribes to text via whisper.cpp",
-		"streams":     map[string]string{"text_out": textStream},
-		"commands":    []string{"broadcast"},
-		"timestamp":   time.Now().Unix(),
-	}
-	data, _ := json.Marshal(cap)
-	_, err := rdb.XAdd(ctx, &redis.XAddArgs{
-		Stream: registryStream,
-		MaxLen: 1000,
-		Approx: true,
-		Values: map[string]interface{}{"type": "capability", "data": string(data)},
-	}).Result()
-	if err != nil {
-		log.Printf("[whisper] Failed to broadcast capability: %v", err)
-	} else {
-		log.Printf("[whisper] Broadcast capability to %s", registryStream)
-	}
-}
-
-func listenForBroadcastRequests(ctx context.Context, rdb *redis.Client) {
-	lastID := "0"
-	for {
-		result, err := rdb.XRead(ctx, &redis.XReadArgs{
-			Streams: []string{registryStream, lastID},
-			Count:   10,
-			Block:   5000,
-		}).Result()
-		if err != nil {
-			if err == redis.Nil { continue }
-			log.Printf("[whisper] Registry read error: %v", err)
-			continue
-		}
-		for _, stream := range result {
-			for _, msg := range stream.Messages {
-				lastID = msg.ID
-				msgType, _ := msg.Values["type"].(string)
-				if msgType == "broadcast_request" {
-					log.Printf("[whisper] Broadcast requested")
-					broadcastCapability(ctx, rdb)
-				}
-			}
-		}
-	}
-}
-
 func writeWav(filename string, pcmData []byte, sampleRate string) error {
 	sr := 16000
 	fmt.Sscanf(sampleRate, "%d", &sr)
 
 	file, err := os.Create(filename)
-	if err != nil { return err }
+	if err != nil {
+		return err
+	}
 	defer file.Close()
 
 	header := make([]byte, 44)
@@ -201,12 +170,15 @@ func writeWav(filename string, pcmData []byte, sampleRate string) error {
 }
 
 func writeUint16(buf []byte, v uint16) {
-	buf[0] = byte(v); buf[1] = byte(v >> 8)
+	buf[0] = byte(v)
+	buf[1] = byte(v >> 8)
 }
 
 func writeUint32(buf []byte, v uint32) {
-	buf[0] = byte(v); buf[1] = byte(v >> 8)
-	buf[2] = byte(v >> 16); buf[3] = byte(v >> 24)
+	buf[0] = byte(v)
+	buf[1] = byte(v >> 8)
+	buf[2] = byte(v >> 16)
+	buf[3] = byte(v >> 24)
 }
 
 func runWhisper(wavFile string) (string, error) {
@@ -242,12 +214,16 @@ func (w *audioWriter) Write(p []byte) (int, error) {
 }
 
 func truncate(s string, max int) string {
-	if len(s) <= max { return s }
+	if len(s) <= max {
+		return s
+	}
 	return s[:max] + "..."
 }
 
 func getEnv(key, defaultValue string) string {
-	if value := os.Getenv(key); value != "" { return value }
+	if value := os.Getenv(key); value != "" {
+		return value
+	}
 	return defaultValue
 }
 

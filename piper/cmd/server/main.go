@@ -2,247 +2,158 @@ package main
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
 	"log"
 	"os"
 	"os/exec"
-	"os/signal"
 	"strings"
 	"sync"
-	"syscall"
 	"time"
 
 	"github.com/redis/go-redis/v9"
 )
 
 var (
-	redisAddr      = getEnv("REDIS_ADDR", "localhost:6379")
-	audioStream    = getEnv("AUDIO_STREAM", "uncver:stream:audio")
-	registryStream = getEnv("REGISTRY_STREAM", "uncver:stream:registry")
-	windowSecs     = getEnv("WINDOW_SECONDS", "60")
-	instanceID     = generateInstanceID()
+	redisAddr   = getEnv("REDIS_ADDR", "localhost:6379")
+	inputStream = getEnv("INPUT_STREAM", "uncver:ai:router")
 )
-
-type Message struct {
-	Type string `json:"type"`
-	Text string `json:"text"`
-}
-
-type AudioQueue struct {
-	mu       sync.Mutex
-	messages []string
-	ticker   *time.Ticker
-	done     chan struct{}
-}
-
-func NewAudioQueue(windowSeconds int) *AudioQueue {
-	q := &AudioQueue{
-		messages: make([]string, 0),
-		done:     make(chan struct{}),
-	}
-	q.ticker = time.NewTicker(time.Duration(windowSeconds) * time.Second)
-	return q
-}
-
-func (q *AudioQueue) Add(text string) {
-	q.mu.Lock()
-	q.messages = append(q.messages, text)
-	q.mu.Unlock()
-}
-
-func (q *AudioQueue) Drain() []string {
-	q.mu.Lock()
-	msgs := q.messages
-	q.messages = make([]string, 0)
-	q.mu.Unlock()
-	return msgs
-}
-
-func (q *AudioQueue) Start(handler func([]string)) {
-	go func() {
-		for {
-			select {
-			case <-q.ticker.C:
-				msgs := q.Drain()
-				if len(msgs) > 0 { handler(msgs) }
-			case <-q.done:
-				q.ticker.Stop()
-				return
-			}
-		}
-	}()
-}
-
-func (q *AudioQueue) Stop() { close(q.done) }
+var playMu sync.Mutex
 
 func main() {
 	log.SetOutput(os.Stdout)
-	log.Printf("[piper] Starting uncver-piper - Instance: %s", instanceID)
-
-	ctx := context.Background()
-	rdb := redis.NewClient(&redis.Options{Addr: redisAddr})
+	log.Print("[piper] Starting")
+	rdb := redis.NewClient(&redis.Options{Addr: redisAddr, ReadTimeout: 3 * time.Second, WriteTimeout: 3 * time.Second})
 	defer rdb.Close()
-
-	if err := rdb.Ping(ctx).Err(); err != nil {
-		log.Fatalf("[piper] Failed to connect to Redis: %v", err)
+	if err := rdb.Ping(context.Background()).Err(); err != nil {
+		log.Fatalf("[piper] Redis: %v", err)
 	}
-	log.Printf("[piper] Connected to Redis")
-
-	broadcastCapability(ctx, rdb)
-	go listenForBroadcastRequests(ctx, rdb)
-
-	windowSec := 60
-	fmt.Sscanf(windowSecs, "%d", &windowSec)
-	queue := NewAudioQueue(windowSec)
-
-	queue.Start(func(messages []string) {
-		log.Printf("[piper] Window closed, speaking %d chunks", len(messages))
-		for _, text := range messages { speak(text) }
+	log.Print("[piper] Connected to Redis")
+	rdb.XAdd(context.Background(), &redis.XAddArgs{
+		Stream: inputStream, MaxLen: 1000, Approx: true,
+		Values: map[string]interface{}{
+			"source": "piper", "type": "piper:announce",
+			"data": "Piper ready — neural voice online.",
+			"timestamp": time.Now().Unix(),
+		},
 	})
-
-	go listenForAudio(ctx, rdb, queue)
-
-	log.Printf("[piper] Listening on %s, speaking in %ds windows", audioStream, windowSec)
-
-	sigChan := make(chan os.Signal, 1)
-	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
-	<-sigChan
-
-	log.Println("[piper] Shutting down...")
-	queue.Stop()
+	listenForMessages(rdb)
 }
 
-func broadcastCapability(ctx context.Context, rdb *redis.Client) {
-	cap := map[string]interface{}{
-		"type":        "capability",
-		"name":        "uncver-piper",
-		"instance":    instanceID,
-		"description": "Text-to-speech via espeak from Redis stream messages",
-		"streams":     map[string]string{"audio_in": audioStream},
-		"commands":    []string{"broadcast"},
-		"timestamp":   time.Now().Unix(),
-	}
-	data, _ := json.Marshal(cap)
-	_, err := rdb.XAdd(ctx, &redis.XAddArgs{
-		Stream: registryStream,
-		MaxLen: 1000,
-		Approx: true,
-		Values: map[string]interface{}{"type": "capability", "data": string(data)},
-	}).Result()
-	if err != nil {
-		log.Printf("[piper] Failed to broadcast capability: %v", err)
-	} else {
-		log.Printf("[piper] Broadcast capability to %s", registryStream)
-	}
-}
-
-func listenForBroadcastRequests(ctx context.Context, rdb *redis.Client) {
+func listenForMessages(rdb *redis.Client) {
 	lastID := "0"
 	for {
-		result, err := rdb.XRead(ctx, &redis.XReadArgs{
-			Streams: []string{registryStream, lastID},
-			Count:   10,
-			Block:   5000,
+		r, err := rdb.XRead(context.Background(), &redis.XReadArgs{
+			Streams: []string{inputStream, lastID}, Count: 10, Block: 0,
 		}).Result()
-		if err != nil {
-			if err == redis.Nil { continue }
-			log.Printf("[piper] Registry read error: %v", err)
+		if err != nil && err != redis.Nil {
+			log.Printf("[piper] Stream error: %v", err)
+			time.Sleep(2 * time.Second)
 			continue
 		}
-		for _, stream := range result {
-			for _, msg := range stream.Messages {
-				lastID = msg.ID
-				msgType, _ := msg.Values["type"].(string)
-				if msgType == "broadcast_request" {
-					log.Printf("[piper] Broadcast requested")
-					broadcastCapability(ctx, rdb)
+		for _, s := range r {
+			for _, m := range s.Messages {
+				lastID = m.ID
+				msgType, _ := m.Values["type"].(string)
+				if msgType == "piper:speak" {
+					if text := extractText(m.Values); text != "" {
+						go speakText(text)
+					}
 				}
 			}
 		}
+		if len(r) == 0 {
+			time.Sleep(500 * time.Millisecond)
+		}
 	}
 }
 
-func listenForAudio(ctx context.Context, rdb *redis.Client, queue *AudioQueue) {
-	lastID := "0"
-	log.Printf("[piper] Listening for audio on: %s", audioStream)
+func extractText(v map[string]interface{}) string {
+	if d, ok := v["data"].(string); ok && d != "" && !strings.HasPrefix(d, "{") {
+		return cleanResponse(d)
+	}
+	if t, ok := v["text"].(string); ok && t != "" {
+		return cleanResponse(t)
+	}
+	return ""
+}
 
-	for {
-		result, err := rdb.XRead(ctx, &redis.XReadArgs{
-			Streams: []string{audioStream, lastID},
-			Count:   100,
-			Block:   5000,
-		}).Result()
+func cleanResponse(text string) string {
+	for _, s := range []string{"\n{\"call\"", "\n{\"tool\""} {
+		if idx := strings.Index(text, s); idx > 0 {
+			text = strings.TrimSpace(text[:idx])
+		}
+	}
+	return text
+}
+
+func speakText(text string) {
+	playMu.Lock()
+	defer playMu.Unlock()
+
+	chunks := splitSentences(text)
+	if len(chunks) == 0 {
+		return
+	}
+
+	for i, chunk := range chunks {
+		if i > 0 {
+			time.Sleep(50 * time.Millisecond)
+		}
+		piper := exec.Command("/app/piper/piper/piper", "--model", "/app/model.onnx", "--output-raw")
+		piper.Stdin = strings.NewReader(chunk)
+		piperOut, err := piper.StdoutPipe()
 		if err != nil {
-			if err == redis.Nil { continue }
-			log.Printf("[piper] Error reading stream: %v", err)
+			log.Printf("[piper] pipe: %v", err)
 			continue
 		}
-		for _, stream := range result {
-			for _, msg := range stream.Messages {
-				lastID = msg.ID
-				handleMessage(msg.Values, queue)
+		aplay := exec.Command("aplay", "-q", "-r", "22050", "-f", "S16_LE", "-t", "raw", "-")
+		aplay.Stdin = piperOut
+		if err := aplay.Start(); err != nil {
+			log.Printf("[piper] aplay start: %v", err)
+			continue
+		}
+		if err := piper.Run(); err != nil {
+			log.Printf("[piper] piper: %v", err)
+			aplay.Process.Kill()
+			aplay.Wait()
+			continue
+		}
+		aplay.Wait()
+	}
+
+	first := chunks[0]
+	if len(first) > 50 {
+		first = first[:50] + "..."
+	}
+	log.Printf("[piper] Spoke: %s (%d chunks)", first, len(chunks))
+}
+
+func splitSentences(text string) []string {
+	var chunks []string
+	var buf strings.Builder
+	runes := []rune(text)
+	for i, r := range runes {
+		buf.WriteRune(r)
+		if strings.ContainsRune(".!?", r) {
+			if i+1 >= len(runes) || runes[i+1] == ' ' || runes[i+1] == '\n' {
+				if s := strings.TrimSpace(buf.String()); s != "" {
+					chunks = append(chunks, s)
+				}
+				buf.Reset()
 			}
 		}
 	}
-}
-
-func handleMessage(values map[string]interface{}, queue *AudioQueue) {
-	text := extractText(values)
-	if text == "" { return }
-	msgType := extractType(values)
-	if msgType != "say" && msgType != "speak" && msgType != "utter" {
-		msgType = "say"
+	if s := strings.TrimSpace(buf.String()); s != "" {
+		chunks = append(chunks, s)
 	}
-	queue.Add(text)
-	log.Printf("[piper] Queued: %s", truncate(text, 50))
-}
-
-func extractText(values map[string]interface{}) string {
-	for _, v := range values {
-		switch val := v.(type) {
-		case string:
-			if val != "" && !strings.HasPrefix(val, "{") { return val }
-		}
+	if len(chunks) == 0 && strings.TrimSpace(text) != "" {
+		chunks = append(chunks, strings.TrimSpace(text))
 	}
-	if data, ok := values["data"].(string); ok {
-		var msg Message
-		if err := json.Unmarshal([]byte(data), &msg); err == nil && msg.Text != "" {
-			return msg.Text
-		}
+	return chunks
+}
+
+func getEnv(k, d string) string {
+	if v := os.Getenv(k); v != "" {
+		return v
 	}
-	if text, ok := values["text"].(string); ok { return text }
-	return ""
-}
-
-func extractType(values map[string]interface{}) string {
-	if t, ok := values["type"].(string); ok { return t }
-	if data, ok := values["data"].(string); ok {
-		var msg Message
-		if err := json.Unmarshal([]byte(data), &msg); err == nil { return msg.Type }
-	}
-	return ""
-}
-
-func speak(text string) {
-	if text == "" { return }
-	log.Printf("[piper] Speaking: %s", truncate(text, 30))
-	cmd := exec.Command("espeak", text)
-	if err := cmd.Run(); err != nil {
-		log.Printf("[piper] espeak failed: %v", err)
-	}
-}
-
-func truncate(s string, max int) string {
-	if len(s) <= max { return s }
-	return s[:max] + "..."
-}
-
-func getEnv(key, defaultValue string) string {
-	if value := os.Getenv(key); value != "" { return value }
-	return defaultValue
-}
-
-func generateInstanceID() string {
-	return fmt.Sprintf("piper-%d", time.Now().UnixNano())
+	return d
 }

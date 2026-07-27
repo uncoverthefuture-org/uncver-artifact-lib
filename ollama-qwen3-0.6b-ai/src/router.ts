@@ -6,34 +6,46 @@ const SYSTEM_PROMPT = `You are a network-aware AI operating within the uncver ec
 
 ## Core Identity
 - You are an autonomous AI agent connected to a network of artifacts via a Redis stream
-- You see EVERY message on the stream — user inputs, your own outputs, responses from other agents
-- Your purpose is to understand what is happening across the network and contribute meaningfully
+- You see EVERY message on the stream — you learn about the network from what others broadcast
+- Your purpose is to understand what is happening and contribute meaningfully
 - Jesus is Lord
 
 ## Message Format
-The stream carries JSON messages. Each message has a "source" field identifying the sender and a "data" field with the content.
+Every message on the stream is JSON. The "type" field identifies the target artifact and action:
+  {"type":"<artifact>:<action>","data":"<payload>","other":"<additional fields>"}
 
-## How to Respond
-You have two modes:
+Artifacts check the "type" field for commands addressed to them. For example, a message with "type":"piper:speak" is routed to the Piper artifact which reads the "data" field aloud.
 
-1. **Thinking (default)**: Respond with natural language analysis, observations, or questions. These are visible to all network participants.
+## How You Communicate
+You communicate through the broadcast mechanism. When you output a tool call or JSON, it gets placed on the stream for all artifacts to see.
 
-2. **Tool Calling**: When you determine that the network needs something done, you may call a tool by outputting ONLY a JSON object in this exact format:
-   {"call":true,"tool":"<tool_name>","args":{<tool_args>}}
+### Tool Calling
+When you need to take an action, output:
+  {"call":true,"tool":"<tool_name>","args":{<type>:"<artifact>:<action>",<other fields>}}
 
 Available tools:
-- \`shell\`: Run a shell command. Args: {"command": "<shell command>"}
-- \`broadcast\`: Send a message to all artifacts. Args: {"message": "<text>"}
+- shell: Run a shell command. Args: {"command":"<shell command>"}
+- broadcast: Send a message to the stream. The entire args object becomes the message fields. You determine the "type" value based on what you want to happen. Example: {"call":true,"tool":"broadcast","args":{"type":"piper:speak","data":"Hello world"}}
+
+### Direct Messages
+If you are not calling a tool, output a plain JSON object. It will be broadcast to the stream automatically with "type" you choose. Use this to share observations or data for other artifacts.
 
 ## Guidelines
-- Be concise. Think step by step before acting.
-- You can see your own tool call outputs — learn from them.
-- If a tool fails, analyze the error and try a different approach.
-- You are part of a larger system. Coordinate with other agents when needed.
-- Never repeat the exact same tool call in a row (this creates loops).
-- If you have nothing useful to do, simply observe and wait.`;
+- Be concise. Think step by step.
+- Learn from what you see on the stream — your own previous broadcasts are visible too.
+- Use "type" values that follow the artifact:action convention.
+- Never repeat the exact same tool call in a row.
+- If you have nothing useful to do, simply observe.`;
 
 const DEDUP_CACHE_SIZE = 3;
+
+function toStreamFields(obj: Record<string, unknown>): Record<string, string> {
+  const fields: Record<string, string> = {};
+  for (const [k, v] of Object.entries(obj)) {
+    fields[k] = typeof v === 'string' ? v : JSON.stringify(v);
+  }
+  return fields;
+}
 
 export class Router {
   private redis: RedisClient;
@@ -86,6 +98,31 @@ export class Router {
       .join('\n\n');
   }
 
+  private async executeTool(toolCall: ToolCall): Promise<void> {
+    if (toolCall.tool === 'broadcast') {
+      const fields = toStreamFields(toolCall.args as Record<string, unknown>);
+      await this.redis.publishMessage(this.stream, {
+        source: 'uncver-ai-router',
+        ...fields,
+      });
+      this.conversation.push({
+        role: 'user',
+        content: `[Tool Result — broadcast sent with args ${JSON.stringify(toolCall.args)}]`,
+      });
+    } else if (toolCall.tool === 'shell') {
+      console.log(`Shell tool: ${toolCall.args.command}`);
+      this.conversation.push({
+        role: 'user',
+        content: `[Tool Result — ${toolCall.tool} called with args ${JSON.stringify(toolCall.args)}]`,
+      });
+    } else {
+      this.conversation.push({
+        role: 'user',
+        content: `[Tool Result — ${toolCall.tool} called with args ${JSON.stringify(toolCall.args)}]`,
+      });
+    }
+  }
+
   async run(): Promise<void> {
     console.log(`Router starting — stream: ${this.stream}, model: ${this.model}`);
 
@@ -118,29 +155,25 @@ export class Router {
             console.log('Dedup: skipping duplicate response');
             continue;
           }
-
           this.recordPublished(reply);
 
           const toolCall = this.extractToolCall(reply);
           if (toolCall) {
             console.log(`Tool call: ${toolCall.tool}`, toolCall.args);
-            await this.redis.publishMessage(this.stream, {
-              source: 'uncver-ai-router',
-              type: 'tool_call',
-              tool: toolCall.tool,
-              args: JSON.stringify(toolCall.args),
-            });
-
-            this.conversation.push({
-              role: 'user',
-              content: `[Tool Result — ${toolCall.tool} called with args ${JSON.stringify(toolCall.args)}]`,
-            });
+            await this.executeTool(toolCall);
           } else {
-            await this.redis.publishMessage(this.stream, {
-              source: 'uncver-ai-router',
-              type: 'response',
-              data: reply,
-            });
+            try {
+              const json = JSON.parse(reply);
+              if (typeof json === 'object' && json !== null) {
+                const fields = toStreamFields(json);
+                await this.redis.publishMessage(this.stream, {
+                  source: 'uncver-ai-router',
+                  ...fields,
+                });
+              }
+            } catch {
+              console.log('Non-JSON output ignored:', reply.substring(0, 80));
+            }
           }
         }
       } catch (err) {

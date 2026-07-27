@@ -1,16 +1,16 @@
 {
   "name": "uncver-whisper",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Captures mic audio and transcribes to text via whisper.cpp",
   "language": "go",
   "author": "uncver",
   "repository": "https://github.com/uncoverthefuture-org/uncver-artifact-lib/tree/main/whisper",
   "network": "uncver-network",
   "container_image": "docker.io/uncoverthefuture/whisper-artifact:latest",
+  "devices": ["/dev/snd"],
   "environment": {
     "REDIS_ADDR": "uncver-redis-stream:6379",
-    "TEXT_STREAM": "uncver:stream:audio:text",
-    "REGISTRY_STREAM": "uncver:stream:registry",
+    "OUTPUT_STREAM": "uncver:ai:router",
     "CHUNK_DURATION_SEC": "5",
     "SAMPLE_RATE": "16000"
   }

@@ -1,0 +1,7 @@
+{
+  "name": "kokoro",
+  "description": "Kokoro-82M neural TTS — high-quality voice for the uncver ecosystem",
+  "container_image": "docker.io/uncoverthefuture/kokoro-artifact:latest",
+  "gui_window": null,
+  "devices": ["/dev/snd"]
+}

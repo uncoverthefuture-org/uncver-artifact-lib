@@ -5,295 +5,190 @@ const Redis = require('ioredis');
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
 
-// Configuration
 const config = {
   port: process.env.PORT || 3000,
-  redisAddr: process.env.REDIS_ADDR || 'localhost:6379',
+  redisAddr: process.env.REDIS_ADDR || 'uncver-redis-stream:6379',
   redisPassword: process.env.REDIS_PASSWORD || '',
-  inputStream: process.env.INPUT_STREAM || 'uncver:stream:input',
-  responseStream: process.env.RESPONSE_STREAM || 'uncver:stream:response',
+  stream: process.env.STREAM || 'uncver:ai:router',
 };
 
-// Generate instance ID
-const instanceId = `chat-web-${uuidv4().slice(0, 8)}`;
-
-// Connected WebSocket clients
+const instanceId = `stream-${uuidv4().slice(0, 8)}`;
 const clients = new Map();
 
-// Redis clients
-const redisSub = new Redis({
+const redis = new Redis({
   host: config.redisAddr.split(':')[0],
   port: parseInt(config.redisAddr.split(':')[1] || '6379'),
   password: config.redisPassword || undefined,
 });
 
-const redisPub = new Redis({
-  host: config.redisAddr.split(':')[0],
-  port: parseInt(config.redisAddr.split(':')[1] || '6379'),
-  password: config.redisPassword || undefined,
-});
-
-// Express app
 const app = express();
 app.use(express.static(path.join(__dirname, '../public')));
 
-// HTTP server
 const server = http.createServer(app);
-
-// WebSocket server
 const wss = new WebSocket.Server({ server });
 
-// Message history (in-memory, per session)
 const messageHistory = new Map();
 const MAX_HISTORY = 100;
 
-// Store message in history
 function storeMessage(sessionId, message) {
-  if (!messageHistory.has(sessionId)) {
-    messageHistory.set(sessionId, []);
-  }
+  if (!messageHistory.has(sessionId)) messageHistory.set(sessionId, []);
   const history = messageHistory.get(sessionId);
   history.push(message);
-  if (history.length > MAX_HISTORY) {
-    history.shift();
-  }
+  if (history.length > MAX_HISTORY) history.shift();
 }
 
-// Get message history
 function getHistory(sessionId) {
   return messageHistory.get(sessionId) || [];
 }
 
-// Broadcast to all clients in a session
 function broadcastToSession(sessionId, data) {
   const message = JSON.stringify(data);
-  for (const [ws, clientInfo] of clients) {
-    if (clientInfo.sessionId === sessionId && ws.readyState === WebSocket.OPEN) {
+  for (const [ws, info] of clients) {
+    if (info.sessionId === sessionId && ws.readyState === WebSocket.OPEN) {
       ws.send(message);
     }
   }
 }
 
-// Subscribe to Redis response stream
-async function subscribeToResponses() {
-  console.log(`Subscribing to response stream: ${config.responseStream}`);
-  
-  let lastId = '$'; // Only new messages
-  
+function broadcastAll(data) {
+  const message = JSON.stringify(data);
+  for (const [ws] of clients) {
+    if (ws.readyState === WebSocket.OPEN) {
+      ws.send(message);
+    }
+  }
+}
+
+async function subscribeToStream() {
+  console.log(`Listening on stream: ${config.stream}`);
+  let isFirstRead = true;
+  let lastId = '$';
   while (true) {
     try {
-      const results = await redisSub.xread('BLOCK', 1000, 'STREAMS', config.responseStream, lastId);
-      
+      if (isFirstRead) {
+        const old = await redis.xrevrange(config.stream, '+', '-', 'COUNT', 100);
+        if (old.length > 0) {
+          for (const [id, fields] of old) {
+            const msg = {};
+            for (let i = 0; i < fields.length; i += 2) msg[fields[i]] = fields[i + 1];
+            broadcastAll({ type: 'stream_message', id, fields: msg });
+          }
+          lastId = old[0][0];
+        }
+        isFirstRead = false;
+      }
+      const results = await redis.xread('BLOCK', 1000, 'STREAMS', config.stream, lastId);
       if (!results || results.length === 0) continue;
-      
       for (const [, messages] of results) {
-      for (const [id, fields] of messages) {
-        lastId = id;
-        
-        try {
-          // Parse fields array as key-value pairs
-          const fieldData = {};
-          for (let i = 0; i < fields.length; i += 2) {
-            fieldData[fields[i]] = fields[i + 1];
-          }
-          
-          const data = fieldData.data;
-          if (!data) {
-            console.log('Message without data field, skipping');
-            continue;
-          }
-          
-          const message = JSON.parse(data);
-            
-            // Only process AI responses, not our own messages
-            if (message.type === 'ai_response' && message.from !== instanceId) {
-              console.log(`Received AI response: ${message.id}`);
-              
-              // Extract session from metadata or broadcast to all
-              const sessionId = message.metadata?.originalFrom || 'default';
-              
-              const chatMessage = {
-                type: 'ai_message',
-                id: message.id,
-                content: message.content,
-                timestamp: message.timestamp || new Date().toISOString(),
-                metadata: message.metadata,
-              };
-              
-              // Store in history
-              storeMessage(sessionId, chatMessage);
-              
-              // Broadcast to session
-              broadcastToSession(sessionId, chatMessage);
-            }
-          } catch (err) {
-            console.error('Failed to parse message:', err.message);
-          }
+        for (const [id, fields] of messages) {
+          lastId = id;
+          const msg = {};
+          for (let i = 0; i < fields.length; i += 2) msg[fields[i]] = fields[i + 1];
+          broadcastAll({ type: 'stream_message', id, fields: msg });
+          const source = msg.source || '';
+          if (source === 'user' || source === 'tester') continue;
+          if (source === instanceId) continue;
+          const replyText = msg.data || msg.message || '';
+          if (!replyText) continue;
+          const chatMessage = {
+            type: 'ai_message',
+            id,
+            content: replyText,
+            source,
+            timestamp: msg.timestamp || new Date().toISOString(),
+          };
+          const sessionId = 'default';
+          storeMessage(sessionId, chatMessage);
+          broadcastToSession(sessionId, chatMessage);
         }
       }
     } catch (err) {
-      console.error('Redis subscription error:', err.message);
+      console.error('Stream read error:', err.message);
       await new Promise(r => setTimeout(r, 1000));
     }
   }
 }
 
-// WebSocket connection handler
 wss.on('connection', (ws, req) => {
   const clientId = uuidv4();
   const sessionId = new URL(req.url, `http://${req.headers.host}`).searchParams.get('session') || 'default';
-  
-  console.log(`Client connected: ${clientId} (session: ${sessionId})`);
-  
+  console.log(`Client connected: ${clientId}`);
   clients.set(ws, { clientId, sessionId, connectedAt: Date.now() });
-  
-  // Send connection confirmation
-  ws.send(JSON.stringify({
-    type: 'connected',
-    clientId,
-    sessionId,
-    instanceId,
-  }));
-  
-  // Send message history for this session
+  ws.send(JSON.stringify({ type: 'connected', clientId, sessionId, instanceId }));
   const history = getHistory(sessionId);
-  if (history.length > 0) {
-    ws.send(JSON.stringify({
-      type: 'history',
-      messages: history,
-    }));
-  }
-  
-  // Handle messages from client
+  if (history.length > 0) ws.send(JSON.stringify({ type: 'history', messages: history }));
   ws.on('message', async (data) => {
     try {
       const msg = JSON.parse(data);
-      const clientInfo = clients.get(ws);
-      
-      if (!clientInfo) return;
-      
+      const info = clients.get(ws);
+      if (!info) return;
       if (msg.type === 'chat_message') {
         const messageId = `${Date.now()}-${uuidv4().slice(0, 8)}`;
-        
-        // Create the message to send to Redis
-        const streamMessage = {
-          type: 'stream_message',
-          id: messageId,
-          content: msg.content,
-          from: clientInfo.sessionId, // Use session as sender ID
-          timestamp: new Date().toISOString(),
-          metadata: {
-            clientId: clientInfo.clientId,
-            sessionId: clientInfo.sessionId,
-          },
-        };
-        
-        // Publish to input stream
-        await redisPub.xadd(config.inputStream, '*', 'data', JSON.stringify(streamMessage));
-        
-        // Store in local history
-        const chatMessage = {
-          type: 'user_message',
-          id: messageId,
-          content: msg.content,
-          timestamp: streamMessage.timestamp,
-          clientId: clientInfo.clientId,
-        };
-        storeMessage(clientInfo.sessionId, chatMessage);
-        
-        // Confirm to sender
-        ws.send(JSON.stringify({
-          type: 'message_sent',
-          id: messageId,
-        }));
-        
-        // Broadcast to other clients in same session
-        broadcastToSession(clientInfo.sessionId, chatMessage);
-        
-        console.log(`Message sent: ${messageId} (session: ${clientInfo.sessionId})`);
+        await redis.xadd(config.stream, '*',
+          'source', instanceId,
+          'data', msg.content,
+          'timestamp', new Date().toISOString()
+        );
+        const chatMessage = { type: 'user_message', id: messageId, content: msg.content, timestamp: new Date().toISOString(), clientId: info.clientId };
+        storeMessage(info.sessionId, chatMessage);
+        ws.send(JSON.stringify({ type: 'message_sent', id: messageId }));
+        broadcastToSession(info.sessionId, chatMessage);
       }
-      
-      if (msg.type === 'ping') {
-        ws.send(JSON.stringify({ type: 'pong', timestamp: Date.now() }));
-      }
-      
+      if (msg.type === 'ping') ws.send(JSON.stringify({ type: 'pong', timestamp: Date.now() }));
     } catch (err) {
-      console.error('Message handling error:', err.message);
-      ws.send(JSON.stringify({
-        type: 'error',
-        message: 'Failed to process message',
-      }));
+      console.error('Message error:', err.message);
+      ws.send(JSON.stringify({ type: 'error', message: 'Failed to process' }));
     }
   });
-  
-  // Handle disconnect
-  ws.on('close', () => {
-    console.log(`Client disconnected: ${clientId}`);
-    clients.delete(ws);
-  });
-  
-  ws.on('error', (err) => {
-    console.error(`WebSocket error (${clientId}):`, err.message);
-    clients.delete(ws);
-  });
+  ws.on('close', () => { clients.delete(ws); });
+  ws.on('error', () => { clients.delete(ws); });
 });
 
-// Health check endpoint
 app.get('/health', (req, res) => {
-  res.json({
-    status: 'ok',
-    instance: instanceId,
-    connectedClients: clients.size,
-    sessions: messageHistory.size,
-    redis: redisSub.status,
-  });
+  res.json({ status: 'ok', instance: instanceId, clients: clients.size });
 });
 
-// Start server
+app.get('/stream', async (req, res) => {
+  try {
+    const data = await redis.xrange(config.stream, '-', '+', 'COUNT', 50);
+    const messages = [];
+    for (const [id, fields] of data) {
+      const msg = {};
+      for (let i = 0; i < fields.length; i += 2) msg[fields[i]] = fields[i + 1];
+      messages.push({ id, ...msg });
+    }
+    res.json({ stream: config.stream, messages });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 async function start() {
   console.log('=========================================');
-  console.log('  Redis Stream Chat Web');
+  console.log('  Artifacts Stream');
   console.log('=========================================');
-  console.log(`Instance ID: ${instanceId}`);
+  console.log(`Instance: ${instanceId}`);
   console.log(`Redis: ${config.redisAddr}`);
-  console.log(`Input Stream: ${config.inputStream}`);
-  console.log(`Response Stream: ${config.responseStream}`);
-  console.log('=========================================');
-  
-  // Wait for Redis connection
-  await redisSub.ping();
-  await redisPub.ping();
+  console.log(`Stream: ${config.stream}`);
+  await redis.ping();
   console.log('Connected to Redis');
-  
-  // Start Redis subscription
-  subscribeToResponses();
-  
-  // Start HTTP server
+  subscribeToStream();
   server.listen(config.port, () => {
-    console.log(`Chat web interface: http://localhost:${config.port}`);
+    console.log(`UI: http://0.0.0.0:${config.port}`);
   });
 }
 
-// Graceful shutdown
 process.on('SIGINT', async () => {
-  console.log('\nShutting down...');
   wss.close();
-  await redisSub.quit();
-  await redisPub.quit();
+  await redis.quit();
   server.close();
   process.exit(0);
 });
-
 process.on('SIGTERM', async () => {
-  console.log('\nShutting down...');
   wss.close();
-  await redisSub.quit();
-  await redisPub.quit();
+  await redis.quit();
   server.close();
   process.exit(0);
 });
 
-start().catch(err => {
-  console.error('Failed to start:', err);
-  process.exit(1);
-});
+start().catch(err => { console.error('Failed:', err); process.exit(1); });

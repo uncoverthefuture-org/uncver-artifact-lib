@@ -3,23 +3,26 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Gemma Chat - Redis Stream</title>
+  <title>Artifacts Stream</title>
   <link rel="stylesheet" href="styles.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
 </head>
 <body>
   <div class="app">
-    <!-- Header -->
     <header class="header">
       <div class="header-left">
         <div class="logo">
-          <span class="logo-icon">🤖</span>
-          <h1>Gemma Chat</h1>
+          <span class="logo-icon">📡</span>
+          <h1>Artifacts Stream</h1>
         </div>
-        <span class="subtitle">Redis Stream AI Interface</span>
+        <span class="subtitle">Redis Stream UI</span>
       </div>
       <div class="header-right">
+        <div class="tabs">
+          <button class="tab active" data-tab="chat" onclick="switchTab('chat')">Chat</button>
+          <button class="tab" data-tab="stream" onclick="switchTab('stream')">Stream</button>
+        </div>
         <div class="status" id="connectionStatus">
           <span class="status-dot offline"></span>
           <span class="status-text">Connecting...</span>
@@ -28,17 +31,20 @@
       </div>
     </header>
 
-    <!-- Settings Panel -->
     <div class="settings-panel" id="settingsPanel" style="display: none;">
       <div class="settings-content">
         <h3>Connection Settings</h3>
         <div class="settings-row">
           <label>Session ID:</label>
-          <input type="text" id="sessionId" value="default" placeholder="Enter session ID">
+          <input type="text" id="sessionId" value="default">
         </div>
         <div class="settings-row">
           <label>WebSocket URL:</label>
-          <input type="text" id="wsUrl" value="ws://localhost:3000" placeholder="ws://localhost:3000">
+          <input type="text" id="wsUrl" value="ws://localhost:3000">
+        </div>
+        <div class="settings-row">
+          <label>Stream:</label>
+          <input type="text" id="streamName" value="uncver:ai:router" disabled>
         </div>
         <div class="settings-actions">
           <button class="btn btn-primary" onclick="reconnect()">Reconnect</button>
@@ -47,35 +53,31 @@
       </div>
     </div>
 
-    <!-- Chat Container -->
     <main class="chat-container" id="chatContainer">
       <div class="welcome-message">
-        <div class="welcome-icon">👋</div>
-        <h2>Welcome to Gemma Chat</h2>
-        <p>Type a message below to start chatting with the AI through Redis streams.</p>
-        <p class="hint">Messages are sent to <code>uncver:stream:input</code> and responses come from <code>uncver:stream:response</code>.</p>
+        <div class="welcome-icon">📡</div>
+        <h2>Artifacts Stream</h2>
+        <p>Redis stream interface — chat or watch messages flow in real time.</p>
       </div>
     </main>
 
-    <!-- Typing Indicator -->
-    <div class="typing-indicator" id="typingIndicator" style="display: none;">
-      <span class="typing-text">Gemma is thinking</span>
-      <span class="typing-dots">
-        <span></span>
-        <span></span>
-        <span></span>
-      </span>
+    <div class="stream-container" id="streamContainer" style="display: none;">
+      <div class="stream-header">
+        <span class="stream-title">Live Stream — <code id="streamNameDisplay">uncver:ai:router</code></span>
+        <span class="stream-count" id="streamCount">0 messages</span>
+        <button class="btn btn-secondary btn-sm" onclick="clearStream()">Clear</button>
+      </div>
+      <div class="stream-log" id="streamLog"></div>
     </div>
 
-    <!-- Input Area -->
-    <footer class="input-area">
+    <div class="typing-indicator" id="typingIndicator" style="display: none;">
+      <span class="typing-text">AI is thinking</span>
+      <span class="typing-dots"><span></span><span></span><span></span></span>
+    </div>
+
+    <footer class="input-area" id="chatInput">
       <div class="input-container">
-        <textarea 
-          id="messageInput" 
-          placeholder="Type your message..." 
-          rows="1"
-          maxlength="2000"
-        ></textarea>
+        <textarea id="messageInput" placeholder="Type your message..." rows="1" maxlength="2000"></textarea>
         <div class="input-actions">
           <span class="char-count" id="charCount">0/2000</span>
           <button class="btn-voice" id="voiceBtn" onclick="toggleVoice()" title="Voice input">
@@ -96,9 +98,7 @@
     </footer>
   </div>
 
-  <!-- Toast Notifications -->
   <div class="toast-container" id="toastContainer"></div>
-
   <script src="app.js"></script>
 </body>
 </html>
