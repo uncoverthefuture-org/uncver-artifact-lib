@@ -1,4 +1,4 @@
-FROM node:22-alpine AS builder
+FROM node:22-bookworm AS builder
 
 WORKDIR /app
 COPY package.json tsconfig.json ./
@@ -7,9 +7,9 @@ COPY src/ ./src/
 RUN npm run build
 RUN npm prune --omit=dev
 
-FROM node:22-alpine
+FROM node:22-bookworm
 
-RUN apk add --no-cache curl
+RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
 
 RUN curl -fsSL https://ollama.ai/install.sh | sh
 
