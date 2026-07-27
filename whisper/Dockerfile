@@ -1,6 +1,6 @@
-FROM golang:1.21-alpine
+FROM docker.io/library/golang:1.21-alpine AS builder
 
-RUN apk add --no-cache sox bash whisper
+RUN apk add --no-cache sox bash
 
 WORKDIR /app
 
@@ -11,17 +11,18 @@ COPY . .
 
 RUN CGO_ENABLED=0 GOOS=linux go build -o uncver-whisper ./cmd/server/
 
-FROM alpine:3.19
+FROM docker.io/library/alpine:3.19
 
-RUN apk add --no-cache sox bash whisper
+RUN apk add --no-cache sox bash
 
 WORKDIR /app
 
-COPY --from=0 /app/uncver-whisper .
+COPY --from=builder /app/uncver-whisper .
 
-ENV REDIS_ADDR=localhost:6379
-ENV REDIS_STREAM_IN=uncver:stream:audio:raw
-ENV REDIS_STREAM_OUT=uncver:stream:audio:text
-ENV BATCH_SIZE=10
+ENV REDIS_ADDR=uncver-redis-stream:6379
+ENV TEXT_STREAM=uncver:stream:audio:text
+ENV REGISTRY_STREAM=uncver:stream:registry
+ENV CHUNK_DURATION_SEC=5
+ENV SAMPLE_RATE=16000
 
 CMD ["./uncver-whisper"]

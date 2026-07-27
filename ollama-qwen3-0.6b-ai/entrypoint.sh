@@ -1,27 +1,22 @@
 #!/bin/sh
 set -e
 
-echo "Starting Ollama server..."
-ollama serve &
-OLLAMA_PID=$!
+OLLAMA_HOST="${OLLAMA_HOST:-uncver-ollama}"
+OLLAMA_PORT="${OLLAMA_PORT:-11434}"
+OLLAMA_URL="http://${OLLAMA_HOST}:${OLLAMA_PORT}"
 
-echo "Waiting for Ollama to be ready..."
+echo "Waiting for Ollama at ${OLLAMA_URL}..."
 for i in $(seq 1 30); do
-  if curl -s http://localhost:11434/api/tags > /dev/null 2>&1; then
+  if curl -s "${OLLAMA_URL}/api/tags" > /dev/null 2>&1; then
     echo "Ollama is ready"
     break
+  fi
+  if [ "$i" = "30" ]; then
+    echo "Error: Ollama not available after 30 seconds"
+    exit 1
   fi
   sleep 1
 done
 
-MODEL="${OLLAMA_MODEL:-qwen3:0.6b}"
-
-if curl -s http://localhost:11434/api/tags | grep -q "\"name\":\"$MODEL\""; then
-  echo "Model $MODEL already cached"
-else
-  echo "Pulling model $MODEL..."
-  ollama pull "$MODEL"
-fi
-
-echo "Starting TypeScript router..."
+echo "Starting AI router..."
 exec node /app/dist/index.js

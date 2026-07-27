@@ -140,10 +140,31 @@
       "version": "1.0.0"
     },
     {
+      "name": "uncver-ollama",
+      "path": "ollama",
+      "description": "Ollama LLM server — serves all artifacts on uncver-network",
+      "language": "docker",
+      "version": "1.0.0"
+    },
+    {
       "name": "uncver-ollama-qwen3-0.6b-ai",
       "path": "ollama-qwen3-0.6b-ai",
-      "description": "AI router on Redis stream with embedded Ollama (qwen3:0.6b) — full tool calling",
+      "description": "AI router on Redis stream — connects to uncver-ollama for LLM inference",
       "language": "typescript",
+      "version": "1.0.0"
+    },
+    {
+      "name": "uncver-whisper",
+      "path": "whisper",
+      "description": "Captures mic audio and transcribes to text via whisper.cpp",
+      "language": "go",
+      "version": "1.0.0"
+    },
+    {
+      "name": "uncver-piper",
+      "path": "piper",
+      "description": "Text-to-speech via espeak from Redis stream messages",
+      "language": "go",
       "version": "1.0.0"
     }
   ],
@@ -154,7 +175,22 @@
       "auto_start": true
     },
     {
+      "name": "uncver-ollama",
+      "required": true,
+      "auto_start": true
+    },
+    {
       "name": "uncver-ollama-qwen3-0.6b-ai",
+      "required": true,
+      "auto_start": true
+    },
+    {
+      "name": "uncver-whisper",
+      "required": true,
+      "auto_start": true
+    },
+    {
+      "name": "uncver-piper",
       "required": true,
       "auto_start": true
     }
@@ -172,7 +208,9 @@
       "stop",
       "delete",
       "share",
-      "artifacts"
+      "artifacts",
+      "whisper",
+      "piper"
     ]
   },
   "websocket": {
