@@ -6,7 +6,7 @@
   "author": "uncver",
   "repository": "https://github.com/uncoverthefuture-org/uncver-artifact-lib/tree/main/whisper",
   "network": "uncver-network",
-  "container_image": "docker.io/uncoverthefuture/uncver-whisper:latest",
+  "container_image": "docker.io/uncoverthefuture/whisper-artifact:latest",
   "environment": {
     "REDIS_ADDR": "uncver-redis-stream:6379",
     "TEXT_STREAM": "uncver:stream:audio:text",
