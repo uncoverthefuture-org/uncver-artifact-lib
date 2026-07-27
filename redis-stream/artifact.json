@@ -6,9 +6,10 @@
   "build_type": "docker",
   "author": "uncver",
   "repository": "https://github.com/uncoverthefuture-org/uncver-artifact-lib/tree/main/redis-stream",
-  "container_image": "redis:7-alpine",
+  "container_image": "docker.io/library/redis:7-alpine",
   "ports": ["6379:6379"],
   "environment": {},
+  "network": "uncver-network",
   "build": {
     "dependencies": ["docker", "docker-compose"],
     "steps": [
