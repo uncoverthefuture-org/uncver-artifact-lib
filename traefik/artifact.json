@@ -7,8 +7,9 @@
   "author": "uncver",
   "repository": "https://github.com/uncoverthefuture-org/uncver-artifact-lib/tree/main/traefik",
   "container_image": "traefik:v2.10",
-  "ports": ["80:80", "443:443", "8080:8080"],
+  "ports": ["42080:80"],
   "environment": {},
+  "network": "uncver-network",
   "build": {
     "dependencies": ["docker"],
     "steps": [
