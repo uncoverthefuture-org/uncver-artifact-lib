@@ -7,7 +7,6 @@
   "author": "uncver",
   "repository": "https://github.com/uncoverthefuture-org/uncver-artifact-lib/tree/main/ollama-qwen3-0.6b-ai",
   "container_image": "docker.io/uncoverthefuture/ollama-qwen3-0.6b-ai:latest",
-  "image_source": "registry",
   "ports": [],
   "environment": {
     "REDIS_HOST": "uncver-redis-stream",

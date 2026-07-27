@@ -7,7 +7,6 @@
   "author": "uncver",
   "repository": "https://github.com/uncoverthefuture-org/uncver-artifact-lib/tree/main/redis-stream",
   "container_image": "docker.io/library/redis:7-alpine",
-  "image_source": "registry",
   "environment": {},
   "network": "uncver-network",
   "build": {
