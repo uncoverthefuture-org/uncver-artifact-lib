@@ -11,7 +11,9 @@ FROM node:22-bookworm
 
 RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
 
-RUN curl -fsSL https://ollama.ai/install.sh | sh
+RUN curl -fsSL https://ollama.com/download/ollama-linux-amd64.tgz -o /tmp/ollama.tgz && \
+    tar -C /usr/local -xzf /tmp/ollama.tgz && \
+    rm /tmp/ollama.tgz
 
 WORKDIR /app
 
