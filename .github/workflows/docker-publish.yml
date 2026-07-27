@@ -1,0 +1,77 @@
+name: Build & Push Docker Images
+
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - '*/Dockerfile'
+      - '*/src/**'
+      - '*/package.json'
+      - '*/entrypoint.sh'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  REGISTRY: docker.io
+  REGISTRY_USER: ${{ vars.DOCKER_USERNAME || 'sirdavis99' }}
+
+jobs:
+  detect:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.changes.outputs.matrix }}
+      should_skip: ${{ steps.changes.outputs.should_skip }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Detect artifacts with Dockerfiles
+        id: changes
+        run: |
+          ALL=$(find . -name Dockerfile -not -path './.git/*' | sed 's|./||;s|/Dockerfile||' | sort -u | jq -R . | jq -s -c .)
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            CHANGED="$ALL"
+          else
+            CHANGED_DIRS=$(git diff --name-only HEAD~1 HEAD | grep -E '^[^/]+/' | cut -d'/' -f1 | sort -u | jq -R . | jq -s -c .)
+            CHANGED=$(echo "$CHANGED_DIRS" | jq -c --argjson all "$ALL" '[.[] as $d | $all[] | select(. == $d)]')
+          fi
+          if [ "$CHANGED" == "[]" ] || [ -z "$CHANGED" ]; then
+            echo "should_skip=true" >> $GITHUB_OUTPUT
+          else
+            echo "matrix={\"artifact\":$CHANGED}" >> $GITHUB_OUTPUT
+            echo "should_skip=false" >> $GITHUB_OUTPUT
+          fi
+
+  build-and-push:
+    needs: detect
+    if: needs.detect.outputs.should_skip != 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix: ${{ fromJson(needs.detect.outputs.matrix) }}
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ env.REGISTRY_USER }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: ./${{ matrix.artifact }}
+          file: ./${{ matrix.artifact }}/Dockerfile
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.REGISTRY_USER }}/${{ matrix.artifact }}:latest
+            ${{ env.REGISTRY }}/${{ env.REGISTRY_USER }}/${{ matrix.artifact }}:sha-${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
