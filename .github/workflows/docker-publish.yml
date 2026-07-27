@@ -64,6 +64,18 @@ jobs:
           username: ${{ env.REGISTRY_USER }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
+      - name: Determine image name
+        id: img
+        run: |
+          DIR=${{ matrix.artifact }}
+          CI=$(jq -r '.container_image // ""' "$DIR/artifact.json" 2>/dev/null || echo "")
+          if [ -n "$CI" ] && echo "$CI" | grep -q "^${{ env.REGISTRY }}/${{ env.REGISTRY_USER }}/"; then
+            BASE="${CI%:*}"
+            echo "base=$BASE" >> $GITHUB_OUTPUT
+          else
+            echo "base=${{ env.REGISTRY }}/${{ env.REGISTRY_USER }}/${DIR}" >> $GITHUB_OUTPUT
+          fi
+
       - name: Build and push
         uses: docker/build-push-action@v6
         with:
@@ -71,7 +83,7 @@ jobs:
           file: ./${{ matrix.artifact }}/Dockerfile
           push: true
           tags: |
-            ${{ env.REGISTRY }}/${{ env.REGISTRY_USER }}/${{ matrix.artifact }}:latest
-            ${{ env.REGISTRY }}/${{ env.REGISTRY_USER }}/${{ matrix.artifact }}:sha-${{ github.sha }}
+            ${{ steps.img.outputs.base }}:latest
+            ${{ steps.img.outputs.base }}:sha-${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
