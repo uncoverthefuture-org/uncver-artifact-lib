@@ -1,0 +1,31 @@
+{
+  "name": "uncver-ollama-qwen3-0.6b-ai",
+  "version": "1.0.0",
+  "description": "AI router on Redis stream with embedded Ollama (qwen3:0.6b) — full tool calling, network-aware",
+  "language": "typescript",
+  "build_type": "docker",
+  "author": "uncver",
+  "repository": "https://github.com/uncoverthefuture-org/uncver-artifact-lib/tree/main/ollama-qwen3-0.6b-ai",
+  "container_image": "uncver-ollama-qwen3-0.6b-ai",
+  "ports": [],
+  "environment": {
+    "REDIS_HOST": "uncver-redis-stream",
+    "REDIS_PORT": "6379",
+    "SHARED_STREAM": "uncver:ai:router",
+    "OLLAMA_MODEL": "qwen3:0.6b"
+  },
+  "volumes": [
+    "ollama-models:/root/.ollama"
+  ],
+  "network": "uncver-network",
+  "dependencies": ["podman"],
+  "build": {
+    "steps": [
+      "podman build -t uncver-ollama-qwen3-0.6b-ai ."
+    ]
+  },
+  "run": {
+    "command": "podman run -d --name uncver-ollama-qwen3-0.6b-ai --network uncver-network -v ollama-models:/root/.ollama -e REDIS_HOST=uncver-redis-stream -e REDIS_PORT=6379 -e SHARED_STREAM=uncver:ai:router -e OLLAMA_MODEL=qwen3:0.6b uncver-ollama-qwen3-0.6b-ai",
+    "stop_command": "podman rm -f uncver-ollama-qwen3-0.6b-ai"
+  }
+}

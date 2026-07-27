@@ -138,6 +138,13 @@
       "description": "Creates folders via Redis streams",
       "language": "nodejs",
       "version": "1.0.0"
+    },
+    {
+      "name": "uncver-ollama-qwen3-0.6b-ai",
+      "path": "ollama-qwen3-0.6b-ai",
+      "description": "AI router on Redis stream with embedded Ollama (qwen3:0.6b) — full tool calling",
+      "language": "typescript",
+      "version": "1.0.0"
     }
   ],
   "required_artifacts": [
@@ -147,12 +154,7 @@
       "auto_start": true
     },
     {
-      "name": "uncver-websocket-stream",
-      "required": true,
-      "auto_start": true
-    },
-    {
-      "name": "uncver-discover",
+      "name": "uncver-ollama-qwen3-0.6b-ai",
       "required": true,
       "auto_start": true
     }

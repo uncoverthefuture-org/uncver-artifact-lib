@@ -1,0 +1,19 @@
+{
+  "name": "ollama-qwen3-0.6b-ai",
+  "version": "1.0.0",
+  "description": "AI router on Redis stream with embedded Ollama (qwen3:0.6b) — full tool calling",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "tsx src/index.ts"
+  },
+  "dependencies": {
+    "ioredis": "^5.4.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0"
+  }
+}

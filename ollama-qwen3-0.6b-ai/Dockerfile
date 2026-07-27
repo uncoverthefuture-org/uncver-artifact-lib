@@ -1,0 +1,29 @@
+FROM node:22-alpine AS builder
+
+WORKDIR /app
+COPY package.json tsconfig.json ./
+RUN npm install
+COPY src/ ./src/
+RUN npm run build
+RUN npm prune --omit=dev
+
+FROM node:22-alpine
+
+RUN apk add --no-cache curl
+
+RUN curl -fsSL https://ollama.ai/install.sh | sh
+
+WORKDIR /app
+
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/node_modules ./node_modules
+COPY package.json ./
+COPY entrypoint.sh .
+RUN chmod +x entrypoint.sh
+
+ENV OLLAMA_HOST=0.0.0.0
+ENV OLLAMA_KEEP_ALIVE=5m
+
+EXPOSE 11434
+
+CMD ["./entrypoint.sh"]
