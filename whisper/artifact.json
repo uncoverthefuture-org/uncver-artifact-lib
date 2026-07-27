@@ -1,7 +1,7 @@
 {
   "name": "uncver-whisper",
   "version": "1.0.0",
-  "description": "Transcribes audio chunks from Redis stream to text using whisper.cpp",
+  "description": "Captures mic audio and transcribes to text via whisper.cpp",
   "language": "go",
   "author": "uncver",
   "repository": "https://github.com/uncoverthefuture-org/uncver-artifact-lib/tree/main/whisper",
@@ -9,15 +9,9 @@
   "container_image": "docker.io/uncoverthefuture/uncver-whisper:latest",
   "environment": {
     "REDIS_ADDR": "uncver-redis-stream:6379",
-    "REDIS_STREAM_IN": "uncver:stream:audio:raw",
-    "REDIS_STREAM_OUT": "uncver:stream:audio:text",
-    "WHISPER_MODEL": "base",
-    "BATCH_SIZE": "10"
-  },
-  "features": [
-    "Listens to Redis audio chunks",
-    "Batches chunks for efficient transcription",
-    "Uses whisper.cpp for local STT",
-    "Pushes transcribed text to Redis stream"
-  ]
+    "TEXT_STREAM": "uncver:stream:audio:text",
+    "REGISTRY_STREAM": "uncver:stream:registry",
+    "CHUNK_DURATION_SEC": "5",
+    "SAMPLE_RATE": "16000"
+  }
 }

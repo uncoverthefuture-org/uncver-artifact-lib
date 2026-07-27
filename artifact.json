@@ -147,16 +147,9 @@
       "version": "1.0.0"
     },
     {
-      "name": "uncver-mic",
-      "path": "mic",
-      "description": "Captures microphone audio and streams to Redis",
-      "language": "go",
-      "version": "1.0.0"
-    },
-    {
       "name": "uncver-whisper",
       "path": "whisper",
-      "description": "Transcribes audio from Redis to text using whisper.cpp",
+      "description": "Captures mic audio and transcribes to text via whisper.cpp",
       "language": "go",
       "version": "1.0.0"
     },
@@ -176,11 +169,6 @@
     },
     {
       "name": "uncver-ollama-qwen3-0.6b-ai",
-      "required": true,
-      "auto_start": true
-    },
-    {
-      "name": "uncver-mic",
       "required": true,
       "auto_start": true
     },
@@ -209,7 +197,6 @@
       "delete",
       "share",
       "artifacts",
-      "mic",
       "whisper",
       "piper"
     ]

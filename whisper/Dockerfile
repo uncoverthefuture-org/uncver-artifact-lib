@@ -20,8 +20,9 @@ WORKDIR /app
 COPY --from=builder /app/uncver-whisper .
 
 ENV REDIS_ADDR=uncver-redis-stream:6379
-ENV REDIS_STREAM_IN=uncver:stream:audio:raw
-ENV REDIS_STREAM_OUT=uncver:stream:audio:text
-ENV BATCH_SIZE=10
+ENV TEXT_STREAM=uncver:stream:audio:text
+ENV REGISTRY_STREAM=uncver:stream:registry
+ENV CHUNK_DURATION_SEC=5
+ENV SAMPLE_RATE=16000
 
 CMD ["./uncver-whisper"]
