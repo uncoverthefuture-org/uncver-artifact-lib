@@ -64,7 +64,22 @@ jobs:
           username: ${{ env.REGISTRY_USER }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
+      - name: Check if already built for this commit
+        id: check
+        run: |
+          TAG="sha-${{ github.sha }}"
+          REPO="${{ env.REGISTRY_USER }}/${{ matrix.artifact }}"
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+            "https://hub.docker.com/v2/repositories/${REPO}/tags/${TAG}/")
+          if [ "$STATUS" = "200" ]; then
+            echo "already_built=true" >> $GITHUB_OUTPUT
+            echo "Tag ${TAG} already exists — skipping build"
+          else
+            echo "already_built=false" >> $GITHUB_OUTPUT
+          fi
+
       - name: Build and push
+        if: steps.check.outputs.already_built != 'true'
         uses: docker/build-push-action@v6
         with:
           context: ./${{ matrix.artifact }}
