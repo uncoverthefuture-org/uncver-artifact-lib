@@ -1,4 +1,4 @@
-FROM golang:1.21-alpine
+FROM docker.io/library/golang:1.21-alpine AS builder
 
 RUN apk add --no-cache sox bash
 
@@ -11,17 +11,17 @@ COPY . .
 
 RUN CGO_ENABLED=0 GOOS=linux go build -o uncver-mic ./cmd/server/
 
-FROM alpine:3.19
+FROM docker.io/library/alpine:3.19
 
 RUN apk add --no-cache sox bash
 
 WORKDIR /app
 
-COPY --from=0 /app/uncver-mic .
+COPY --from=builder /app/uncver-mic .
 
-ENV REDIS_ADDR=localhost:6379
+ENV REDIS_ADDR=uncver-redis-stream:6379
 ENV REDIS_STREAM=uncver:stream:audio:raw
-ENV CHUNK_DURATION_SEC=5
+ENV CHUNK_DURATION_MS=1000
 ENV SAMPLE_RATE=16000
 
 CMD ["./uncver-mic"]

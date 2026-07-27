@@ -3,7 +3,7 @@ name: Orchestrate Artifact Builds
 on:
   push:
     branches: [main, master]
-    paths:
+    paths: &artifact_paths
       - 'create/**'
       - 'delete/**'
       - 'discover/**'
@@ -21,31 +21,13 @@ on:
       - 'piper/**'
       - 'mic/**'
       - 'whisper/**'
+      - 'ollama-qwen3-0.6b-ai/**'
       - 'scripts/**'
       - '.github/workflows/orchestrate.yml'
   pull_request:
     types: [closed]
     branches: [main, master]
-    paths:
-      - 'create/**'
-      - 'delete/**'
-      - 'discover/**'
-      - 'start/**'
-      - 'stop/**'
-      - 'share/**'
-      - 'artifacts/**'
-      - 'websocket-stream/**'
-      - 'redis-stream/**'
-      - 'traefik/**'
-      - 'ngrok/**'
-      - 'knowledge-graph/**'
-      - 'mecury-inception-listener/**'
-      - 'redis-stream-gui/**'
-      - 'piper/**'
-      - 'mic/**'
-      - 'whisper/**'
-      - 'scripts/**'
-      - '.github/workflows/orchestrate.yml'
+    paths: *artifact_paths
   workflow_dispatch:
 
 jobs:
@@ -60,7 +42,7 @@ jobs:
       - name: Detect changed artifacts
         id: changes
         run: |
-          ALL_ARTIFACTS='["create","delete","discover","ngrok","redis-stream","share","start","stop","traefik","websocket-stream","artifacts","knowledge-graph","mecury-inception-listener","redis-stream-gui","piper"]'
+          ALL_ARTIFACTS='["create","delete","discover","ngrok","redis-stream","share","start","stop","traefik","websocket-stream","artifacts","knowledge-graph","mecury-inception-listener","redis-stream-gui","piper","mic","whisper","ollama-qwen3-0.6b-ai"]'
           
           if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
             CHANGED="$ALL_ARTIFACTS"
@@ -158,5 +140,5 @@ jobs:
             -d '{
               "type": "fire_artifacts",
               "message": "All artifacts built and ready to deploy",
-              "artifacts": ["create","delete","discover","ngrok","redis-stream","share","start","stop","traefik","websocket-stream","artifacts","knowledge-graph","mecury-inception-listener","redis-stream-gui","piper"]
+              "artifacts": ["create","delete","discover","ngrok","redis-stream","share","start","stop","traefik","websocket-stream","artifacts","knowledge-graph","mecury-inception-listener","redis-stream-gui","piper","mic","whisper","ollama-qwen3-0.6b-ai"]
             }' || echo "Fire command failed (PC may be offline)"

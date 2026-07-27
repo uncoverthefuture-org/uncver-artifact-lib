@@ -2,13 +2,13 @@
 set -e
 
 echo "Starting Ollama server..."
-ollama serve &
+ollama serve > /dev/null 2>&1 &
 OLLAMA_PID=$!
 
 echo "Waiting for Ollama to be ready..."
 for i in $(seq 1 30); do
   if curl -s http://localhost:11434/api/tags > /dev/null 2>&1; then
-    echo "Ollama is ready"
+    echo "Ollama is ready (PID $OLLAMA_PID)"
     break
   fi
   sleep 1
